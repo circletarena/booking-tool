@@ -1,0 +1,16 @@
+{
+  "name": "Circle T Arena — Barn B",
+  "short_name": "Barn B",
+  "description": "Interactive stall booking map for Circle T Arena Barn B",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0d0a",
+  "theme_color": "#0f0d0a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23c8a040'/><text x='256' y='340' font-size='260' font-family='serif' font-weight='bold' fill='%230f0d0a' text-anchor='middle'>CT</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

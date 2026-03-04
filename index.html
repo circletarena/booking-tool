@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Barn B — Reserve a Stall | Circle T Arena</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Circle T Barn B">
+<meta name="theme-color" content="#0f0d0a">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23c8a040'/><text x='90' y='120' font-size='90' font-family='serif' font-weight='bold' fill='%230f0d0a' text-anchor='middle'>CT</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -154,9 +161,10 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .lw.cart { background:var(--chk); border-color:var(--gldl); box-shadow:0 0 0 1px var(--gldl); }
 
 @media(max-width:900px){
-  .info-panel { position:fixed; bottom:0; left:0; right:0; height:auto; max-height:65vh; border-top:2px solid var(--gld); transform:translateY(100%); transition:transform 0.25s ease-out; z-index:200; border-right:none; }
-  .info-panel.vis { transform:translateY(0); }
-  .map-panel { border-right:none; padding-bottom:80px; }
+  .info-panel { position:fixed; bottom:0; left:0; right:0; height:auto; max-height:65vh; border-top:2px solid var(--gld); transform:translateY(100%); transition:transform 0.25s ease-out; z-index:200; border-right:none; display:none; }
+  .info-panel.vis { display:flex; transform:translateY(0); }
+  .map-panel { border-right:none; padding-bottom:20px; }
+  .main { grid-template-columns:1fr; }
 }
 .err { padding:12px 16px; background:#2a1010; border:1px solid var(--red); border-radius:var(--radius); color:#c06060; font-size:12px; margin:16px 0; }
 </style>
