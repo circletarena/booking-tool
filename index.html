@@ -251,8 +251,13 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
     </div>
     <div class="info-content" id="infoContent">
       <div class="info-header">
-        <div class="stall-id" id="iStallId">—</div>
-        <div class="stall-meta" id="iStallMeta">Barn B · Circle T Arena</div>
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+          <div>
+            <div class="stall-id" id="iStallId">—</div>
+            <div class="stall-meta" id="iStallMeta">Barn B · Circle T Arena</div>
+          </div>
+          <button class="btn-widget-back" onclick="clearSelection()" aria-label="Close panel" style="flex-shrink:0;">✕</button>
+        </div>
       </div>
       <div class="avail-banner loading" id="iAvailBanner" role="status">
         <div class="avail-dot"></div>
@@ -645,7 +650,7 @@ document.addEventListener('keydown', function(e){
 
 function handleCellSelect(cell){
   if(cell.classList.contains('no-product')) return;
-  if(cell.classList.contains('unavailable')) return;
+  if(cell.classList.contains('unavailable')){ clearSelection(); return; }
 
   var dates = getDates();
   if(!dates.start || !dates.end || nightsBetween(dates.start, dates.end) <= 0){
