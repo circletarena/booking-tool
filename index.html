@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Barn B — Book a Stall</title>
+<title>Barn B — Reserve a Stall | Circle T Arena</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,13 +35,14 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .nights-pill strong { color:var(--gldl); }
 .progress-label { font-size:10px; color:var(--txd); font-family:'JetBrains Mono',monospace; align-self:flex-end; padding-bottom:8px; white-space:nowrap; min-width:140px; transition:color 0.3s; }
 .progress-label.done { color:var(--grnl); }
+.progress-label .stale-link { color:var(--gldl); cursor:pointer; text-decoration:underline; margin-left:4px; }
 
 /* Progress bar */
 .progress-wrap { width:100%; height:3px; background:var(--bd); }
 .progress-bar { height:100%; background:var(--gld); width:0%; transition:width 0.4s ease; }
 
 /* Layout */
-.main { display:grid; grid-template-columns:1fr 320px; min-height:calc(100vh - 130px); }
+.main { display:grid; grid-template-columns:1fr 340px; min-height:calc(100vh - 130px); }
 @media(max-width:900px){ .main { grid-template-columns:1fr; } }
 
 /* Map panel */
@@ -62,15 +63,18 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .aisle { height:18px; display:flex; align-items:center; justify-content:center; font-size:8px; color:var(--txm); font-family:'JetBrains Mono',monospace; letter-spacing:0.05em; margin:2px 0; }
 .rv-row { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:4px; }
 
-/* Stall cell */
-.sc { width:36px; height:25px; display:flex; align-items:center; justify-content:center; border-radius:3px; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:500; cursor:pointer; border:1.5px solid var(--bd); background:var(--neu); color:var(--txm); position:relative; transition:transform 0.1s,box-shadow 0.1s,border-color 0.2s,background 0.2s; flex-shrink:0; user-select:none; }
-.sc:hover { transform:scale(1.2); z-index:10; box-shadow:0 4px 12px rgba(0,0,0,0.5); }
+/* Stall cell — 44px min touch target via padding */
+.sc { width:36px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:3px; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:500; cursor:pointer; border:1.5px solid var(--bd); background:var(--neu); color:var(--txm); position:relative; transition:transform 0.1s,box-shadow 0.1s,border-color 0.2s,background 0.2s; flex-shrink:0; user-select:none; }
+.sc::after { content:''; position:absolute; top:50%; left:50%; width:44px; height:44px; transform:translate(-50%,-50%); }
+.sc:hover { transform:scale(1.15); z-index:10; box-shadow:0 4px 12px rgba(0,0,0,0.5); }
+.sc:focus-visible { outline:2px solid var(--gldl); outline-offset:2px; z-index:10; }
 .sc.checking { border-color:var(--gld); background:var(--chk); color:var(--gldl); animation:pulse 0.8s ease-in-out infinite alternate; }
 @keyframes pulse { from{opacity:0.6} to{opacity:1} }
 .sc.available { background:var(--grnd); border-color:var(--grn); color:var(--grnl); cursor:pointer; }
 .sc.unavailable { background:var(--redd); border-color:var(--red); color:var(--redl); cursor:default; opacity:0.55; }
-.sc.selected { transform:scale(1.2); z-index:10; box-shadow:0 0 0 2px var(--gld),0 4px 14px rgba(0,0,0,0.6); border-color:var(--gld) !important; }
-.rc { width:36px; height:22px; font-size:8px; }
+.sc.selected { transform:scale(1.15); z-index:10; box-shadow:0 0 0 2px var(--gld),0 4px 14px rgba(0,0,0,0.6); border-color:var(--gld) !important; }
+.sc.in-cart { box-shadow:0 0 0 2px var(--gldl); border-color:var(--gldl) !important; }
+.rc { width:36px; height:26px; font-size:8px; }
 
 /* Info panel */
 .info-panel { background:var(--sf); display:flex; flex-direction:column; position:sticky; top:61px; height:calc(100vh - 61px); overflow-y:auto; }
@@ -109,6 +113,17 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .btn-clear { width:100%; padding:8px; background:transparent; color:var(--txd); border:1px solid var(--bd); border-radius:var(--radius); font-family:'DM Sans',sans-serif; font-size:12px; cursor:pointer; margin-top:8px; transition:border-color 0.15s,color 0.15s; }
 .btn-clear:hover { border-color:var(--bdl); color:var(--tx); }
 
+/* Cart */
+.cart-block { padding:14px 18px; border-bottom:1px solid var(--bd); display:none; }
+.cart-block.vis { display:block; }
+.cart-title { font-size:9px; text-transform:uppercase; letter-spacing:0.1em; color:var(--txd); font-family:'JetBrains Mono',monospace; margin-bottom:8px; }
+.cart-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--bd); font-size:12px; }
+.cart-item:last-child { border-bottom:none; }
+.cart-item .ci-name { color:var(--tx); }
+.cart-item .ci-remove { color:var(--redl); cursor:pointer; font-size:10px; padding:2px 6px; border:1px solid var(--red); border-radius:3px; background:transparent; font-family:'JetBrains Mono',monospace; transition:background 0.15s; }
+.cart-item .ci-remove:hover { background:var(--redd); }
+.cart-count { font-size:11px; color:var(--gldl); font-family:'JetBrains Mono',monospace; margin-top:6px; }
+
 /* Widget */
 .widget-section { display:none; padding:20px; border-top:2px solid var(--gld); background:var(--sf2); }
 .widget-section.vis { display:block; }
@@ -117,7 +132,10 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .widget-stall { font-size:11px; color:var(--gldl); font-family:'JetBrains Mono',monospace; margin-top:2px; }
 .btn-widget-back { background:transparent; border:1px solid var(--bd); color:var(--txd); padding:6px 12px; border-radius:var(--radius); font-size:11px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:border-color 0.15s,color 0.15s; }
 .btn-widget-back:hover { border-color:var(--bdl); color:var(--tx); }
-.widget-wrap { background:var(--sf); border:1px solid var(--bd); border-radius:var(--radius); min-height:100px; padding:16px; }
+/* Widget framing — softens the transition to Checkfront's light UI */
+.widget-frame { background:#f5f3ef; border:1px solid var(--bd); border-radius:var(--radius); overflow:hidden; }
+.widget-frame-header { background:#e8e4dc; padding:10px 16px; font-size:11px; color:#4a4030; font-family:'JetBrains Mono',monospace; border-bottom:1px solid #d0c8b8; }
+.widget-wrap { min-height:100px; padding:16px; background:#fff; }
 .widget-loading { font-size:12px; color:var(--txd); text-align:center; padding:20px; }
 
 /* Fallback banner */
@@ -133,6 +151,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .lw.avail { background:var(--grnd); border-color:var(--grn); }
 .lw.unavail { background:var(--redd); border-color:var(--red); }
 .lw.chk { background:var(--chk); border-color:var(--gld); }
+.lw.cart { background:var(--chk); border-color:var(--gldl); box-shadow:0 0 0 1px var(--gldl); }
 
 @media(max-width:900px){
   .info-panel { position:fixed; bottom:0; left:0; right:0; height:auto; max-height:65vh; border-top:2px solid var(--gld); transform:translateY(100%); transition:transform 0.25s ease-out; z-index:200; border-right:none; }
@@ -144,7 +163,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 </head>
 <body>
 
-<!-- Checkfront widget library — loads the CHECKFRONT.Widget constructor -->
+<!-- Checkfront widget library -->
 <script src="//circle-t-arena.manage.na1.bookingplatform.app/lib/interface--0.js"></script>
 
 <header class="hdr">
@@ -158,18 +177,17 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
   <span class="badge">Live Availability</span>
 </header>
 
-<!-- Fallback: shown if the map fails to load -->
 <div class="fallback-banner" id="fallbackBanner">
   Having trouble? <a href="https://circle-t-arena.manage.na1.bookingplatform.app/reserve" target="_blank">Book directly here</a>
 </div>
 
 <div class="datebar">
   <div class="field">
-    <label>Check-In</label>
+    <label for="startDate">Check-In</label>
     <input type="date" id="startDate" onchange="onDateChange()">
   </div>
   <div class="field">
-    <label>Check-Out</label>
+    <label for="endDate">Check-Out</label>
     <input type="date" id="endDate" onchange="onDateChange()">
   </div>
   <div class="nights-pill" id="nightsPill"><strong>—</strong> nights</div>
@@ -181,50 +199,54 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 
 <div class="main">
 
-  <div class="map-panel">
+  <div class="map-panel" role="region" aria-label="Stall map">
     <div class="map-title">Barn B</div>
     <div class="map-subtitle">Stalls 200–299 · Stalls 300–429 · VIP RVs 251–260</div>
     <div id="mapLoading" class="map-loading">
-      <div class="spin"></div>
+      <div class="spin" role="status" aria-label="Loading"></div>
       <p>Building stall map...</p>
     </div>
     <div id="mapContent" style="display:none">
       <div class="barn-wrap">
         <div class="barn-section">
-          <div class="section-label">Stalls 300–429</div>
-          <div class="row-group"><div class="stall-row" id="r417"></div><div class="stall-row" id="r416"></div></div>
-          <div class="aisle">— 10′5″ —</div>
-          <div class="row-group"><div class="stall-row" id="r391"></div><div class="stall-row" id="r390"></div></div>
-          <div class="aisle">— 10′5″ —</div>
-          <div class="row-group"><div class="stall-row" id="r365"></div><div class="stall-row" id="r364"></div></div>
-          <div class="aisle">— 10′5″ —</div>
-          <div class="row-group"><div class="stall-row" id="r339"></div><div class="stall-row" id="r338"></div></div>
-          <div class="aisle">— 10′5″ —</div>
-          <div class="row-group"><div class="stall-row" id="r313"></div><div class="stall-row" id="r312"></div></div>
+          <div class="section-label" id="sec300label">Stalls 300–429</div>
+          <div role="grid" aria-labelledby="sec300label">
+            <div class="row-group"><div class="stall-row" role="row" id="r417"></div><div class="stall-row" role="row" id="r416"></div></div>
+            <div class="aisle">— 10′5″ —</div>
+            <div class="row-group"><div class="stall-row" role="row" id="r391"></div><div class="stall-row" role="row" id="r390"></div></div>
+            <div class="aisle">— 10′5″ —</div>
+            <div class="row-group"><div class="stall-row" role="row" id="r365"></div><div class="stall-row" role="row" id="r364"></div></div>
+            <div class="aisle">— 10′5″ —</div>
+            <div class="row-group"><div class="stall-row" role="row" id="r339"></div><div class="stall-row" role="row" id="r338"></div></div>
+            <div class="aisle">— 10′5″ —</div>
+            <div class="row-group"><div class="stall-row" role="row" id="r313"></div><div class="stall-row" role="row" id="r312"></div></div>
+          </div>
         </div>
         <div class="barn-section">
-          <div class="section-label">Stalls 200–299</div>
-          <div class="row-group"><div class="stall-row" id="r299"></div><div class="stall-row" id="r280"></div></div>
-          <div class="aisle">— 19′0″ —</div>
-          <div class="row-group"><div class="stall-row" id="r279"></div><div class="stall-row" id="r260"></div></div>
-          <div class="aisle">— 19′0″ —</div>
-          <div class="row-group"><div class="stall-row" id="r259"></div><div class="stall-row" id="r240"></div></div>
-          <div class="aisle">— 19′0″ —</div>
-          <div class="row-group"><div class="stall-row" id="r239"></div><div class="stall-row" id="r220"></div></div>
-          <div class="aisle">— 19′0″ —</div>
-          <div class="row-group"><div class="stall-row" id="r219"></div><div class="stall-row" id="r200"></div></div>
+          <div class="section-label" id="sec200label">Stalls 200–299</div>
+          <div role="grid" aria-labelledby="sec200label">
+            <div class="row-group"><div class="stall-row" role="row" id="r299"></div><div class="stall-row" role="row" id="r280"></div></div>
+            <div class="aisle">— 19′0″ —</div>
+            <div class="row-group"><div class="stall-row" role="row" id="r279"></div><div class="stall-row" role="row" id="r260"></div></div>
+            <div class="aisle">— 19′0″ —</div>
+            <div class="row-group"><div class="stall-row" role="row" id="r259"></div><div class="stall-row" role="row" id="r240"></div></div>
+            <div class="aisle">— 19′0″ —</div>
+            <div class="row-group"><div class="stall-row" role="row" id="r239"></div><div class="stall-row" role="row" id="r220"></div></div>
+            <div class="aisle">— 19′0″ —</div>
+            <div class="row-group"><div class="stall-row" role="row" id="r219"></div><div class="stall-row" role="row" id="r200"></div></div>
+          </div>
         </div>
       </div>
       <div style="margin-top:18px;border-top:1px solid var(--bd);padding-top:14px;">
-        <div class="section-label" style="margin-bottom:8px;">Barn B VIP RVs 251–260</div>
-        <div class="rv-row" id="rvRow"></div>
+        <div class="section-label" id="secRVlabel" style="margin-bottom:8px;">Barn B VIP RVs 251–260</div>
+        <div class="rv-row" role="grid" aria-labelledby="secRVlabel" id="rvRow"></div>
       </div>
     </div>
   </div>
 
-  <div class="info-panel" id="infoPanel">
+  <div class="info-panel" id="infoPanel" role="complementary" aria-label="Stall details">
     <div class="info-empty" id="infoEmpty">
-      <div class="icon">🐴</div>
+      <div class="icon" aria-hidden="true">🐴</div>
       <p>Select your dates above — the map will light up with real-time availability. Then tap any stall to see details and reserve it.</p>
     </div>
     <div class="info-content" id="infoContent">
@@ -232,7 +254,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
         <div class="stall-id" id="iStallId">—</div>
         <div class="stall-meta" id="iStallMeta">Barn B · Circle T Arena</div>
       </div>
-      <div class="avail-banner loading" id="iAvailBanner">
+      <div class="avail-banner loading" id="iAvailBanner" role="status">
         <div class="avail-dot"></div>
         <span id="iAvailText">Checking availability...</span>
       </div>
@@ -240,7 +262,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
         <div class="price-block">
           <div class="price-label">Rate</div>
           <div class="price-amount" id="iPrice">—</div>
-          <div class="price-unit">per night</div>
+          <div class="price-unit" id="iPriceUnit">per night</div>
           <div class="price-total" id="iPriceTotal"></div>
         </div>
         <div class="details-block">
@@ -249,9 +271,17 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
           <div class="detail-row"><span class="dk">Nights</span><span class="dv" id="iNights">—</span></div>
         </div>
         <div class="book-block">
-          <button class="btn-book" id="btnBook" onclick="launchBooking()" disabled>Reserve This Stall</button>
+          <button class="btn-book" id="btnAddCart" onclick="addToCart()" disabled>Add to Cart</button>
+          <button class="btn-book" id="btnBook" onclick="launchBooking()" disabled style="display:none;margin-top:8px;background:var(--grn);">Reserve All Stalls</button>
           <button class="btn-clear" onclick="clearSelection()">← Back to map</button>
         </div>
+      </div>
+      <!-- Cart -->
+      <div class="cart-block" id="cartBlock">
+        <div class="cart-title">Your Cart</div>
+        <div id="cartItems"></div>
+        <div class="cart-count" id="cartCount"></div>
+        <button class="btn-book" id="btnReserveCart" onclick="launchBooking()" style="margin-top:10px;">Reserve All Stalls</button>
       </div>
     </div>
   </div>
@@ -265,9 +295,12 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
     </div>
     <button class="btn-widget-back" onclick="closeWidget()">✕ Close</button>
   </div>
-  <div class="widget-wrap">
-    <div class="widget-loading" id="widgetMsg">Loading reservation form...</div>
-    <div id="CF_WIDGET_TARGET"></div>
+  <div class="widget-frame">
+    <div class="widget-frame-header" id="widgetFrameHeader">Completing reservation...</div>
+    <div class="widget-wrap">
+      <div class="widget-loading" id="widgetMsg">Loading reservation form...</div>
+      <div id="CF_WIDGET_TARGET"></div>
+    </div>
   </div>
 </div>
 
@@ -276,21 +309,20 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
   <div class="li"><div class="lw chk"></div> Checking...</div>
   <div class="li"><div class="lw avail"></div> Available</div>
   <div class="li"><div class="lw unavail"></div> Booked</div>
+  <div class="li"><div class="lw cart"></div> In cart</div>
 </div>
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// Barn B Interactive Booking Map — Vercel Edition
+// Barn B Interactive Booking Map — v2
 //
-// Changes from Apps Script version:
-//   - google.script.run → fetch() calls to /api/* serverless functions
-//   - Batch availability fires 8 parallel chunks instead of 11+ serial calls
-//   - URL state support (deep linking via query params)
-//   - Fallback banner if API fails
-//   - SKU removed from customer-facing UI
+// Architecture:
+//   Map coloring:  v4 /api/bookings (fast — "what's booked?")
+//   Click detail:  v3 /api/availability (single item — pricing + SLIP)
+//   Cart:          Multi-stall selection with sequential booking
+//   Accessibility: ARIA roles, keyboard nav, focus management
 // ══════════════════════════════════════════════════════════════
 
-// ── Fallback booking URL (shown if map/API fails) ─────────────
 var FALLBACK_URL = 'https://circle-t-arena.manage.na1.bookingplatform.app/reserve';
 
 // ── Map Layout ────────────────────────────────────────────────
@@ -321,12 +353,17 @@ var VIP_RVS = [251,252,253,254,255,256,257,258,259,260];
 // ── State ─────────────────────────────────────────────────────
 var productMap   = {};   // stallNumber → { itemId, name }
 var rvProductMap = {};   // rvNumber → { itemId, name }
-var availCache   = {};   // itemId → availability result
-var selectedItemId = null, selectedSlip = null, selectedName = null, selectedCell = null;
-var batchRunId = 0;
-var mapReady   = false;
+var bookedMap    = {};   // "stall_N" or "rv_N" → booking info (from v4)
+var availCache   = {};   // itemId → v3 rated result (from click)
+var cart         = [];   // [{ itemId, label, type, number, slip }]
+var selectedCell = null;
+var selectedLabel = null;
+var batchRunId   = 0;
+var mapReady     = false;
 var pendingBatch = false;
-var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+var isTouch      = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+var lastFetchedAt = null;
+var staleTimer    = null;
 
 // ── Date Helpers ──────────────────────────────────────────────
 function today(){ var d=new Date(); d.setHours(0,0,0,0); return d; }
@@ -336,11 +373,9 @@ function nightsBetween(s,e){ return Math.round((new Date(e)-new Date(s))/8640000
 function fmtDisplay(v){ var p=v.split('-'); var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return mo[parseInt(p[1])-1]+' '+parseInt(p[2])+', '+p[0]; }
 
 function initDates(){
-  // Check URL params first (deep linking support)
   var params = new URLSearchParams(window.location.search);
   var urlStart = params.get('checkin');
   var urlEnd = params.get('checkout');
-
   if(urlStart && urlEnd){
     document.getElementById('startDate').value = urlStart;
     document.getElementById('endDate').value = urlEnd;
@@ -354,14 +389,18 @@ function initDates(){
 
 function onDateChange(){
   updateNightsPill();
+  bookedMap={};
   availCache={};
+  cart=[];
+  updateCartUI();
   batchRunId++;
   document.querySelectorAll('.sc').forEach(function(c){
-    c.classList.remove('available','unavailable','checking','selected');
+    c.classList.remove('available','unavailable','checking','selected','in-cart');
   });
   clearInfoPanel();
   closeWidget();
   updateUrl();
+  clearStaleTimer();
 
   var s=document.getElementById('startDate').value;
   var e=document.getElementById('endDate').value;
@@ -370,7 +409,7 @@ function onDateChange(){
     setProgressBar(0);
     return;
   }
-  if(mapReady){ runBatchAvailability(s,e); }
+  if(mapReady){ runBookingsCheck(s,e); }
   else { pendingBatch=true; }
 }
 
@@ -384,334 +423,491 @@ function updateNightsPill(){
 
 function getDates(){ return { start:document.getElementById('startDate').value, end:document.getElementById('endDate').value }; }
 
-// ── URL State (deep linking) ──────────────────────────────────
+// ── URL State ─────────────────────────────────────────────────
 function updateUrl(){
   var s=document.getElementById('startDate').value;
   var e=document.getElementById('endDate').value;
   var params=new URLSearchParams();
   if(s) params.set('checkin',s);
   if(e) params.set('checkout',e);
-  if(selectedName){
-    var match = selectedName.match(/\d+/);
+  if(selectedLabel){
+    var match = selectedLabel.match(/\d+/);
     if(match) params.set('stall',match[0]);
   }
   var newUrl=window.location.pathname+'?'+params.toString();
   window.history.replaceState(null,'',newUrl);
 }
 
-// ── Batch Availability (parallel chunks, ~30 items each) ──────────
-// Fires 8 parallel requests instead of one giant category call.
-// Each chunk finishes well under Vercel's 10s timeout, and cells
-// color progressively as chunks complete.
-var CHUNK_SIZE = 30;
+// ── Staleness Indicator ───────────────────────────────────────
+function startStaleTimer(){
+  clearStaleTimer();
+  lastFetchedAt = Date.now();
+  staleTimer = setInterval(function(){
+    var elapsed = Math.round((Date.now() - lastFetchedAt) / 60000);
+    if(elapsed >= 2){
+      var label = document.getElementById('progressLabel');
+      var dates = getDates();
+      if(dates.start && dates.end && nightsBetween(dates.start,dates.end) > 0){
+        label.innerHTML = 'Checked ' + elapsed + ' min ago<span class="stale-link" onclick="refreshAvailability()">↻ Refresh</span>';
+        label.className = 'progress-label';
+      }
+    }
+  }, 30000);
+}
 
-async function runBatchAvailability(start,end){
-  var myRun=++batchRunId;
-  var startApi=fmtApi(start), endApi=fmtApi(end);
+function clearStaleTimer(){
+  if(staleTimer){ clearInterval(staleTimer); staleTimer=null; }
+}
 
-  // Collect all item IDs from both product maps
-  var allIds=[];
-  for(var n in productMap) allIds.push(productMap[n].itemId);
-  for(var n in rvProductMap) allIds.push(rvProductMap[n].itemId);
-  if(allIds.length===0) return;
+function refreshAvailability(){
+  var dates = getDates();
+  if(dates.start && dates.end && nightsBetween(dates.start, dates.end) > 0){
+    bookedMap = {};
+    availCache = {};
+    runBookingsCheck(dates.start, dates.end);
+  }
+}
 
-  setProgressLabel('Checking real-time availability...',false);
-  setProgressBar(10);
+// ── Availability Check (v4 bookings — FAST) ───────────────────
+// Fetches all bookings for the date range in one call.
+// Stalls NOT in the booking list are available.
+async function runBookingsCheck(start, end){
+  var myRun = ++batchRunId;
+  var startApi = fmtApi(start), endApi = fmtApi(end);
 
-  // Mark all mapped stalls as "checking"
+  var totalStalls = Object.keys(productMap).length + Object.keys(rvProductMap).length;
+  if(totalStalls === 0) return;
+
+  setProgressLabel('Checking real-time availability...', false);
+  setProgressBar(30);
+
   document.querySelectorAll('.sc:not(.no-product)').forEach(function(c){
     c.classList.add('checking');
   });
 
-  // Split into chunks of CHUNK_SIZE
-  var chunks=[];
-  for(var i=0;i<allIds.length;i+=CHUNK_SIZE){
-    chunks.push(allIds.slice(i,i+CHUNK_SIZE));
-  }
+  try {
+    var resp = await fetch('/api/bookings?start=' + startApi + '&end=' + endApi);
+    if(!resp.ok) throw new Error('API returned ' + resp.status);
+    var data = await resp.json();
 
-  var completed=0;
-  var errors=0;
+    if(myRun !== batchRunId) return;
 
-  // Fire all chunks in parallel, color cells as each completes
-  var promises=chunks.map(function(chunk){
-    var ids=chunk.join(',');
-    return fetch('/api/availability?item_ids='+encodeURIComponent(ids)+'&start='+startApi+'&end='+endApi)
-      .then(function(resp){
-        if(!resp.ok) throw new Error('API '+resp.status);
-        return resp.json();
-      })
-      .then(function(data){
-        if(myRun!==batchRunId) return; // Dates changed, abort
-        if(data.results){
-          data.results.forEach(function(r){
-            if(r){ availCache[r.itemId]=r; colorCell(r); }
-          });
-        }
-        completed++;
-        var pct=Math.round(10+((completed/chunks.length)*90));
-        setProgressBar(pct);
-        setProgressLabel('Checked '+Math.min(completed*CHUNK_SIZE,allIds.length)+' of '+allIds.length+' stalls...',false);
-      })
-      .catch(function(err){
-        errors++;
-        completed++;
-        console.error('Chunk error:',err);
-      });
-  });
+    if(data.error){
+      setProgressLabel('Error: ' + data.error, false);
+      showFallback();
+      return;
+    }
 
-  await Promise.all(promises);
+    bookedMap = data.booked || {};
 
-  if(myRun!==batchRunId) return;
+    // Color all cells
+    document.querySelectorAll('.sc:not(.no-product)').forEach(function(c){
+      c.classList.remove('checking');
+      var type = c.dataset.type;
+      var num = type === 'rv' ? c.dataset.rv : c.dataset.stall;
+      var key = type === 'rv' ? 'rv_' + num : 'stall_' + num;
+      if(bookedMap[key]){
+        c.classList.add('unavailable');
+        c.setAttribute('aria-label', (type==='rv'?'VIP RV ':'Stall ') + num + ', booked');
+      } else {
+        c.classList.add('available');
+        c.setAttribute('aria-label', (type==='rv'?'VIP RV ':'Stall ') + num + ', available');
+      }
+    });
 
-  // Remove any remaining "checking" state
-  document.querySelectorAll('.sc.checking').forEach(function(c){
-    c.classList.remove('checking');
-  });
-
-  if(errors===chunks.length){
-    setProgressLabel('Could not check availability — try refreshing',false);
-    showFallback();
-  } else {
-    setProgressLabel('✓ '+allIds.length+' stalls checked',true);
+    setProgressLabel('✓ ' + totalStalls + ' stalls checked', true);
     setProgressBar(100);
+    startStaleTimer();
+
+  } catch(err) {
+    if(myRun !== batchRunId) return;
+    console.error('Bookings check error:', err);
+    document.querySelectorAll('.sc.checking').forEach(function(c){
+      c.classList.remove('checking');
+    });
+    setProgressLabel('Could not check availability — try refreshing', false);
+    showFallback();
   }
 }
 
-function colorCell(result){
-  if(!result||!result.itemId) return;
-  var isAvail=result.available&&result.slip;
-  var selector=null;
-  for(var n in productMap){ if(productMap[n].itemId===result.itemId){ selector='.sc[data-stall="'+n+'"]'; break; } }
-  if(!selector){ for(var n in rvProductMap){ if(rvProductMap[n].itemId===result.itemId){ selector='.sc[data-rv="'+n+'"]'; break; } } }
-  if(!selector) return;
-  var cell=document.querySelector(selector);
-  if(!cell||cell===selectedCell) return;
-  cell.classList.remove('checking','available','unavailable');
-  cell.classList.add(isAvail?'available':'unavailable');
+function setProgressBar(pct){ document.getElementById('progressBar').style.width = pct + '%'; }
+function setProgressLabel(text, done){
+  var el = document.getElementById('progressLabel');
+  el.textContent = text;
+  el.className = 'progress-label' + (done ? ' done' : '');
 }
 
-function setProgressBar(pct){ document.getElementById('progressBar').style.width=pct+'%'; }
-function setProgressLabel(text,done){
-  var el=document.getElementById('progressLabel');
-  el.textContent=text;
-  el.className='progress-label'+(done?' done':'');
-}
-
-// ── Fallback ──────────────────────────────────────────────────
 function showFallback(){
   document.getElementById('fallbackBanner').classList.add('vis');
 }
 
 // ── Build Map ─────────────────────────────────────────────────
 function buildMap(products){
-  // Map Checkfront products to stall/RV numbers by parsing product names
-  for(var i=0;i<products.length;i++){
-    var p=products[i];
-    var name=p.name||'';
-    var stallMatch=name.match(/stall\s+(\d+)/i);
-    var rvMatch=name.match(/rv\s+(\d+)/i)||name.match(/rv(\d+)/i);
-    if(stallMatch) productMap[parseInt(stallMatch[1])]={itemId:p.id,name:name};
-    else if(rvMatch) rvProductMap[parseInt(rvMatch[1])]={itemId:p.id,name:name};
+  for(var i = 0; i < products.length; i++){
+    var p = products[i];
+    var name = p.name || '';
+    var stallMatch = name.match(/stall\s+(\d+)/i);
+    var rvMatch = name.match(/rv\s+(\d+)/i) || name.match(/rv(\d+)/i);
+    if(stallMatch) productMap[parseInt(stallMatch[1])] = { itemId: p.id, name: name };
+    else if(rvMatch) rvProductMap[parseInt(rvMatch[1])] = { itemId: p.id, name: name };
   }
 
-  // Validation: log any stalls in the layout that don't have matching products
-  var unmatched=[];
+  var unmatched = [];
   for(var rowId in ROWS){
     ROWS[rowId].forEach(function(n){ if(!productMap[n]) unmatched.push(n); });
   }
-  VIP_RVS.forEach(function(n){ if(!rvProductMap[n]) unmatched.push('RV'+n); });
-  if(unmatched.length>0) console.warn('Unmatched stalls (no product found):',unmatched);
+  VIP_RVS.forEach(function(n){ if(!rvProductMap[n]) unmatched.push('RV' + n); });
+  if(unmatched.length > 0) console.warn('Unmatched stalls (no product found):', unmatched);
 
-  // Render stall cells
   for(var rowId in ROWS){
-    var el=document.getElementById(rowId);
+    var el = document.getElementById(rowId);
     if(!el) continue;
-    el.innerHTML=ROWS[rowId].map(function(n){
-      var has=!!productMap[n];
-      return '<div class="sc'+(has?'':' no-product')+'" data-stall="'+n+'" data-type="stall" title="Stall '+n+'">'+n+'</div>';
+    el.innerHTML = ROWS[rowId].map(function(n){
+      var has = !!productMap[n];
+      return '<div class="sc' + (has ? '' : ' no-product') + '" data-stall="' + n + '" data-type="stall" role="gridcell" tabindex="' + (has ? '0' : '-1') + '" aria-label="Stall ' + n + '">' + n + '</div>';
     }).join('');
   }
 
-  // Render RV cells
-  var rvEl=document.getElementById('rvRow');
-  rvEl.innerHTML=VIP_RVS.map(function(n){
-    var has=!!rvProductMap[n];
-    return '<div class="sc rc'+(has?'':' no-product')+'" data-rv="'+n+'" data-type="rv" title="VIP RV '+n+'">'+n+'</div>';
+  var rvEl = document.getElementById('rvRow');
+  rvEl.innerHTML = VIP_RVS.map(function(n){
+    var has = !!rvProductMap[n];
+    return '<div class="sc rc' + (has ? '' : ' no-product') + '" data-rv="' + n + '" data-type="rv" role="gridcell" tabindex="' + (has ? '0' : '-1') + '" aria-label="VIP RV ' + n + '">' + n + '</div>';
   }).join('');
 
-  document.getElementById('mapLoading').style.display='none';
-  document.getElementById('mapContent').style.display='block';
-  mapReady=true;
+  document.getElementById('mapLoading').style.display = 'none';
+  document.getElementById('mapContent').style.display = 'block';
+  mapReady = true;
 
-  // Fire pending batch if dates were set before map loaded
   if(pendingBatch){
-    pendingBatch=false;
-    var s=document.getElementById('startDate').value;
-    var e=document.getElementById('endDate').value;
-    if(s&&e&&nightsBetween(s,e)>0) runBatchAvailability(s,e);
+    pendingBatch = false;
+    var s = document.getElementById('startDate').value;
+    var e = document.getElementById('endDate').value;
+    if(s && e && nightsBetween(s, e) > 0) runBookingsCheck(s, e);
   }
 
-  // Check URL for pre-selected stall (deep link)
-  var params=new URLSearchParams(window.location.search);
-  var urlStall=params.get('stall');
+  var params = new URLSearchParams(window.location.search);
+  var urlStall = params.get('stall');
   if(urlStall){
-    var cell=document.querySelector('.sc[data-stall="'+urlStall+'"]')||
-             document.querySelector('.sc[data-rv="'+urlStall+'"]');
-    if(cell) setTimeout(function(){ cell.click(); },800);
+    var cell = document.querySelector('.sc[data-stall="' + urlStall + '"]') ||
+               document.querySelector('.sc[data-rv="' + urlStall + '"]');
+    if(cell) setTimeout(function(){ cell.click(); }, 800);
   }
 }
 
 // ── Click Handling ────────────────────────────────────────────
-document.addEventListener('click',function(e){
-  var cell=e.target.closest('.sc');
+document.addEventListener('click', function(e){
+  var cell = e.target.closest('.sc');
   if(cell){
-    if(selectedCell===cell){ clearSelection(); return; }
-    if(cell.classList.contains('no-product')) return;
-    var dates=getDates();
-    if(!dates.start||!dates.end||nightsBetween(dates.start,dates.end)<=0){
-      setProgressLabel('⚠ Select valid dates first',false);
-      return;
-    }
-    if(selectedCell) selectedCell.classList.remove('selected');
-    selectedCell=cell;
-    cell.classList.add('selected');
-    var type=cell.dataset.type;
-    var number=parseInt(type==='rv'?cell.dataset.rv:cell.dataset.stall);
-    var prod=type==='rv'?rvProductMap[number]:productMap[number];
-    if(!prod) return;
-    var label=type==='rv'?'VIP RV '+number:'Stall '+number;
-    showInfoPanel(label);
-    checkAvailability(prod.itemId,label,cell,dates.start,dates.end);
-    updateUrl();
-    if(isTouch) document.getElementById('infoPanel').classList.add('vis');
+    handleCellSelect(cell);
   } else {
-    var panel=document.getElementById('infoPanel');
-    var widget=document.getElementById('widgetSection');
-    if(!panel.contains(e.target)&&!widget.contains(e.target)&&isTouch) clearSelection();
+    var panel = document.getElementById('infoPanel');
+    var widget = document.getElementById('widgetSection');
+    if(!panel.contains(e.target) && !widget.contains(e.target) && isTouch) clearSelection();
   }
 });
 
+// ── Keyboard Navigation ───────────────────────────────────────
+document.addEventListener('keydown', function(e){
+  var cell = document.activeElement;
+  if(!cell || !cell.classList.contains('sc')) return;
+
+  var key = e.key;
+  if(key === 'Enter' || key === ' '){
+    e.preventDefault();
+    handleCellSelect(cell);
+    return;
+  }
+
+  if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)) return;
+  e.preventDefault();
+
+  var row = cell.parentElement;
+  var cells = Array.from(row.querySelectorAll('.sc'));
+  var idx = cells.indexOf(cell);
+
+  var target = null;
+  if(key === 'ArrowLeft' && idx > 0) target = cells[idx - 1];
+  if(key === 'ArrowRight' && idx < cells.length - 1) target = cells[idx + 1];
+  if(key === 'ArrowUp' || key === 'ArrowDown'){
+    var allRows = Array.from(document.querySelectorAll('.stall-row, .rv-row'));
+    var rowIdx = allRows.indexOf(row);
+    var nextRowIdx = key === 'ArrowUp' ? rowIdx - 1 : rowIdx + 1;
+    if(nextRowIdx >= 0 && nextRowIdx < allRows.length){
+      var nextCells = Array.from(allRows[nextRowIdx].querySelectorAll('.sc'));
+      target = nextCells[Math.min(idx, nextCells.length - 1)] || null;
+    }
+  }
+
+  if(target && !target.classList.contains('no-product')){
+    target.focus();
+  }
+});
+
+function handleCellSelect(cell){
+  if(cell.classList.contains('no-product')) return;
+  if(cell.classList.contains('unavailable')) return;
+
+  var dates = getDates();
+  if(!dates.start || !dates.end || nightsBetween(dates.start, dates.end) <= 0){
+    setProgressLabel('⚠ Select valid dates first', false);
+    return;
+  }
+
+  if(selectedCell) selectedCell.classList.remove('selected');
+  selectedCell = cell;
+  cell.classList.add('selected');
+
+  var type = cell.dataset.type;
+  var number = parseInt(type === 'rv' ? cell.dataset.rv : cell.dataset.stall);
+  var prod = type === 'rv' ? rvProductMap[number] : productMap[number];
+  if(!prod) return;
+
+  selectedLabel = type === 'rv' ? 'VIP RV ' + number : 'Stall ' + number;
+  showInfoPanel(selectedLabel);
+  fetchStallDetail(prod.itemId, selectedLabel, cell, dates.start, dates.end);
+  updateUrl();
+  if(isTouch) document.getElementById('infoPanel').classList.add('vis');
+}
+
 // ── Info Panel ────────────────────────────────────────────────
 function showInfoPanel(label){
-  document.getElementById('infoEmpty').style.display='none';
+  document.getElementById('infoEmpty').style.display = 'none';
   document.getElementById('infoContent').classList.add('vis');
-  document.getElementById('iStallId').textContent=label;
-  document.getElementById('iStallMeta').textContent='Barn B · Circle T Arena';
-  var banner=document.getElementById('iAvailBanner');
-  banner.className='avail-banner loading';
-  document.getElementById('iAvailText').textContent='Checking availability...';
-  document.getElementById('iAvailDetails').style.display='none';
-  document.getElementById('btnBook').disabled=true;
+  document.getElementById('iStallId').textContent = label;
+  document.getElementById('iStallMeta').textContent = 'Barn B · Circle T Arena';
+  var banner = document.getElementById('iAvailBanner');
+  banner.className = 'avail-banner loading';
+  document.getElementById('iAvailText').textContent = 'Loading pricing...';
+  document.getElementById('iAvailDetails').style.display = 'none';
+  document.getElementById('btnAddCart').disabled = true;
 }
 
 function clearInfoPanel(){
-  document.getElementById('infoEmpty').style.display='flex';
+  document.getElementById('infoEmpty').style.display = 'flex';
   document.getElementById('infoContent').classList.remove('vis');
   if(isTouch) document.getElementById('infoPanel').classList.remove('vis');
+  selectedCell = null;
+  selectedLabel = null;
 }
 
 function clearSelection(){
-  if(selectedCell){ selectedCell.classList.remove('selected'); selectedCell=null; }
-  selectedItemId=null; selectedSlip=null; selectedName=null;
-  clearInfoPanel(); closeWidget(); updateUrl();
+  if(selectedCell){ selectedCell.classList.remove('selected'); selectedCell = null; }
+  selectedLabel = null;
+  clearInfoPanel();
+  closeWidget();
+  updateUrl();
 }
 
-// ── Single Stall Availability Check ──────────────────────────
-// Uses cache from bulk response; falls back to single API call.
-async function checkAvailability(itemId,label,cell,start,end){
+// ── Single Stall Detail (v3 rated — pricing + SLIP) ───────────
+async function fetchStallDetail(itemId, label, cell, start, end){
   if(availCache[itemId]){
-    renderAvailResult(availCache[itemId],itemId,label,cell,start,end);
+    renderStallDetail(availCache[itemId], itemId, label, cell, start, end);
     return;
   }
-
-  cell.classList.remove('available','unavailable');
-  cell.classList.add('checking');
 
   try {
-    var resp=await fetch('/api/availability?item_id='+itemId+'&start='+fmtApi(start)+'&end='+fmtApi(end));
-    if(!resp.ok) throw new Error('API returned '+resp.status);
-    var result=await resp.json();
+    var resp = await fetch('/api/availability?item_id=' + itemId + '&start=' + fmtApi(start) + '&end=' + fmtApi(end));
+    if(!resp.ok) throw new Error('API returned ' + resp.status);
+    var result = await resp.json();
 
-    availCache[itemId]=result;
-    if(selectedCell===cell){
-      renderAvailResult(result,itemId,label,cell,start,end);
-    } else {
-      cell.classList.remove('checking');
-      colorCell(result);
+    availCache[itemId] = result;
+    if(selectedCell === cell){
+      renderStallDetail(result, itemId, label, cell, start, end);
     }
   } catch(err){
-    cell.classList.remove('checking');
-    if(selectedCell===cell){
-      var banner=document.getElementById('iAvailBanner');
-      banner.className='avail-banner error';
-      document.getElementById('iAvailText').textContent='Error: '+(err.message||'Could not load');
+    if(selectedCell === cell){
+      var banner = document.getElementById('iAvailBanner');
+      banner.className = 'avail-banner error';
+      document.getElementById('iAvailText').textContent = 'Error: ' + (err.message || 'Could not load');
     }
   }
 }
 
-function renderAvailResult(result,itemId,label,cell,start,end){
-  cell.classList.remove('checking');
+function renderStallDetail(result, itemId, label, cell, start, end){
   if(result.error){
-    cell.classList.add('unavailable');
-    var banner=document.getElementById('iAvailBanner');
-    banner.className='avail-banner error';
-    document.getElementById('iAvailText').textContent='Could not load availability';
+    var banner = document.getElementById('iAvailBanner');
+    banner.className = 'avail-banner error';
+    document.getElementById('iAvailText').textContent = 'Could not load pricing';
     return;
   }
-  var isAvail=result.available&&result.slip;
-  cell.classList.add(isAvail?'available':'unavailable');
-  var banner=document.getElementById('iAvailBanner');
-  banner.className='avail-banner '+(isAvail?'available':'unavailable');
-  document.getElementById('iAvailText').textContent=isAvail?'Available for your dates':'Not available — already booked';
-  document.getElementById('iAvailDetails').style.display='block';
-  var nights=nightsBetween(start,end);
-  document.getElementById('iCheckin').textContent=fmtDisplay(start);
-  document.getElementById('iCheckout').textContent=fmtDisplay(end);
-  document.getElementById('iNights').textContent=nights+(nights===1?' night':' nights');
+
+  var isAvail = result.available && result.slip;
+  var banner = document.getElementById('iAvailBanner');
+  banner.className = 'avail-banner ' + (isAvail ? 'available' : 'unavailable');
+  document.getElementById('iAvailText').textContent = isAvail ? 'Available for your dates' : 'Not available — already booked';
+  document.getElementById('iAvailDetails').style.display = 'block';
+
+  var nights = nightsBetween(start, end);
+  document.getElementById('iCheckin').textContent = fmtDisplay(start);
+  document.getElementById('iCheckout').textContent = fmtDisplay(end);
+  document.getElementById('iNights').textContent = nights + (nights === 1 ? ' night' : ' nights');
+
   if(isAvail){
-    document.getElementById('iPrice').textContent=result.priceTitle||'—';
-    document.getElementById('iPriceTotal').innerHTML=result.priceTotal?'Total: <strong>'+result.priceTotal+'</strong>':'';
-    document.getElementById('btnBook').disabled=false;
-    selectedItemId=itemId; selectedSlip=result.slip; selectedName=label;
+    document.getElementById('iPrice').textContent = result.priceTitle || '—';
+    document.getElementById('iPriceUnit').textContent = result.priceUnit || 'per night';
+    document.getElementById('iPriceTotal').innerHTML = result.priceTotal ? 'Total: <strong>' + result.priceTotal + '</strong>' : '';
+
+    // Check if already in cart
+    var inCart = cart.some(function(c){ return c.itemId === itemId; });
+    var btn = document.getElementById('btnAddCart');
+    btn.disabled = false;
+    btn.textContent = inCart ? 'Remove from Cart' : 'Add to Cart';
+    btn.onclick = function(){ inCart ? removeFromCart(itemId) : addToCart(); };
   } else {
-    document.getElementById('iPrice').textContent='—';
-    document.getElementById('iPriceTotal').innerHTML='';
-    document.getElementById('btnBook').disabled=true;
+    document.getElementById('iPrice').textContent = '—';
+    document.getElementById('iPriceUnit').textContent = '';
+    document.getElementById('iPriceTotal').innerHTML = '';
+    document.getElementById('btnAddCart').disabled = true;
+    document.getElementById('btnAddCart').textContent = 'Not Available';
   }
+
+  updateCartUI();
 }
 
-// ── Launch Booking Widget ─────────────────────────────────────
+// ── Cart ──────────────────────────────────────────────────────
+function addToCart(){
+  if(!selectedCell || !selectedLabel) return;
+  var type = selectedCell.dataset.type;
+  var number = parseInt(type === 'rv' ? selectedCell.dataset.rv : selectedCell.dataset.stall);
+  var prod = type === 'rv' ? rvProductMap[number] : productMap[number];
+  if(!prod) return;
+
+  var cached = availCache[prod.itemId];
+  if(!cached || !cached.slip) return;
+
+  // Avoid duplicates
+  if(cart.some(function(c){ return c.itemId === prod.itemId; })) return;
+
+  cart.push({
+    itemId: prod.itemId,
+    label: selectedLabel,
+    type: type,
+    number: number,
+    slip: cached.slip,
+  });
+
+  selectedCell.classList.add('in-cart');
+
+  // Update button state
+  var btn = document.getElementById('btnAddCart');
+  btn.textContent = 'Remove from Cart';
+  btn.onclick = function(){ removeFromCart(prod.itemId); };
+
+  updateCartUI();
+}
+
+function removeFromCart(itemId){
+  cart = cart.filter(function(c){ return c.itemId !== itemId; });
+
+  // Remove in-cart class from cell
+  document.querySelectorAll('.sc.in-cart').forEach(function(c){
+    var type = c.dataset.type;
+    var num = parseInt(type === 'rv' ? c.dataset.rv : c.dataset.stall);
+    var prod = type === 'rv' ? rvProductMap[num] : productMap[num];
+    if(prod && !cart.some(function(ci){ return ci.itemId === prod.itemId; })){
+      c.classList.remove('in-cart');
+    }
+  });
+
+  // Update add/remove button if viewing this stall
+  if(selectedCell){
+    var type = selectedCell.dataset.type;
+    var num = parseInt(type === 'rv' ? selectedCell.dataset.rv : selectedCell.dataset.stall);
+    var prod = type === 'rv' ? rvProductMap[num] : productMap[num];
+    if(prod && prod.itemId === itemId){
+      var btn = document.getElementById('btnAddCart');
+      btn.textContent = 'Add to Cart';
+      btn.onclick = function(){ addToCart(); };
+    }
+  }
+
+  updateCartUI();
+}
+
+function updateCartUI(){
+  var block = document.getElementById('cartBlock');
+  var itemsEl = document.getElementById('cartItems');
+  var countEl = document.getElementById('cartCount');
+
+  if(cart.length === 0){
+    block.classList.remove('vis');
+    return;
+  }
+
+  block.classList.add('vis');
+  itemsEl.innerHTML = cart.map(function(c, i){
+    return '<div class="cart-item"><span class="ci-name">' + c.label + '</span><button class="ci-remove" onclick="removeFromCart(' + c.itemId + ')">✕</button></div>';
+  }).join('');
+
+  // Sum totals if available
+  var totalCents = 0;
+  var allHavePricing = true;
+  cart.forEach(function(c){
+    var cached = availCache[c.itemId];
+    if(cached && cached.priceTotal){
+      var match = cached.priceTotal.match(/[\d,.]+/);
+      if(match) totalCents += parseFloat(match[0].replace(',',''));
+      else allHavePricing = false;
+    } else {
+      allHavePricing = false;
+    }
+  });
+
+  var countText = cart.length + ' stall' + (cart.length !== 1 ? 's' : '') + ' selected';
+  if(allHavePricing && totalCents > 0) countText += ' · Est. total: $' + totalCents.toFixed(2);
+  countEl.textContent = countText;
+}
+
+// ── Launch Booking ────────────────────────────────────────────
 function launchBooking(){
-  if(!selectedItemId||!selectedSlip) return;
+  if(cart.length === 0) return;
+
+  var firstItem = cart[0];
+  var cartLabel = cart.map(function(c){ return c.label; }).join(', ');
+
   document.getElementById('widgetSection').classList.add('vis');
-  document.getElementById('widgetStallLabel').textContent=selectedName;
-  document.getElementById('widgetMsg').style.display='block';
-  document.getElementById('CF_WIDGET_TARGET').innerHTML='';
-  setTimeout(function(){ document.getElementById('widgetSection').scrollIntoView({behavior:'smooth',block:'start'}); },100);
+  document.getElementById('widgetStallLabel').textContent = cartLabel;
+  document.getElementById('widgetFrameHeader').textContent = 'Completing reservation for ' + cartLabel;
+  document.getElementById('widgetMsg').style.display = 'block';
+  document.getElementById('CF_WIDGET_TARGET').innerHTML = '';
+
+  setTimeout(function(){
+    document.getElementById('widgetSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+
   setTimeout(function(){
     try {
-      document.getElementById('widgetMsg').style.display='none';
+      document.getElementById('widgetMsg').style.display = 'none';
+      // Launch widget with first item — customer can add more via Checkfront's native cart
       new CHECKFRONT.Widget({
-        host:'circle-t-arena.manage.na1.bookingplatform.app',
-        target:'CF_WIDGET_TARGET',
-        item_id:String(selectedItemId),
-        slip:selectedSlip,
-        provider:'droplet',
-        options:'hidesearch,hidedates'
+        host: 'circle-t-arena.manage.na1.bookingplatform.app',
+        target: 'CF_WIDGET_TARGET',
+        item_id: String(firstItem.itemId),
+        slip: firstItem.slip,
+        provider: 'droplet',
+        options: 'hidesearch,hidedates'
       }).render();
+
+      if(cart.length > 1){
+        document.getElementById('widgetMsg').style.display = 'block';
+        document.getElementById('widgetMsg').innerHTML =
+          '<div style="margin-bottom:10px;color:var(--gldl);font-size:11px;">' +
+          'Booking ' + firstItem.label + ' first. After completing this reservation, ' +
+          'you can book the remaining stalls: ' +
+          cart.slice(1).map(function(c){ return c.label; }).join(', ') + '.</div>';
+      }
     } catch(err){
-      // Widget failed — show direct booking link as fallback
-      document.getElementById('widgetMsg').style.display='block';
-      document.getElementById('widgetMsg').innerHTML=
-        'Could not load the reservation form. '+
-        '<a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Book directly here</a>';
+      document.getElementById('widgetMsg').style.display = 'block';
+      document.getElementById('widgetMsg').innerHTML =
+        'Could not load the reservation form. ' +
+        '<a href="' + FALLBACK_URL + '" target="_blank" style="color:var(--gldl);">Book directly here</a>';
     }
-  },500);
+  }, 500);
 }
 
 function closeWidget(){
   document.getElementById('widgetSection').classList.remove('vis');
-  document.getElementById('CF_WIDGET_TARGET').innerHTML='';
+  document.getElementById('CF_WIDGET_TARGET').innerHTML = '';
 }
 
 // ── Init ──────────────────────────────────────────────────────
@@ -720,26 +916,25 @@ window.addEventListener('load', async function(){
 
   try {
     var resp = await fetch('/api/products?categories=3742,3752');
-    if(!resp.ok) throw new Error('API returned '+resp.status);
+    if(!resp.ok) throw new Error('API returned ' + resp.status);
     var data = await resp.json();
 
     if(data.error){
-      document.getElementById('mapLoading').innerHTML='<div class="err">Failed to load stall data: '+data.error+'</div>';
+      document.getElementById('mapLoading').innerHTML = '<div class="err">Failed to load stall data: ' + data.error + '</div>';
       showFallback();
       return;
     }
 
-    buildMap(data.products||[]);
+    buildMap(data.products || []);
 
-    // Auto-fire availability check since default dates are pre-set
-    var s=document.getElementById('startDate').value;
-    var e=document.getElementById('endDate').value;
-    if(s&&e&&nightsBetween(s,e)>0) runBatchAvailability(s,e);
+    var s = document.getElementById('startDate').value;
+    var e = document.getElementById('endDate').value;
+    if(s && e && nightsBetween(s, e) > 0) runBookingsCheck(s, e);
 
   } catch(err) {
-    document.getElementById('mapLoading').innerHTML=
-      '<div class="err">Could not connect to booking system. '+
-      '<a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Book directly here</a></div>';
+    document.getElementById('mapLoading').innerHTML =
+      '<div class="err">Could not connect to booking system. ' +
+      '<a href="' + FALLBACK_URL + '" target="_blank" style="color:var(--gldl);">Book directly here</a></div>';
     showFallback();
   }
 });

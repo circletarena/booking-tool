@@ -1,15 +1,19 @@
 /**
  * GET /api/availability
  *
- * Fetches rated availability from Checkfront v3 API.
+ * Fetches rated availability for a SINGLE item from Checkfront v3 API.
+ * Used when a customer clicks a stall — returns pricing and booking SLIP.
  *
- * Modes:
- *   Single:  ?item_id=123&start=YYYYMMDD&end=YYYYMMDD
- *   Chunk:   ?item_ids=123,456,789&start=YYYYMMDD&end=YYYYMMDD
+ * The map coloring is handled by /api/bookings (v4, fast).
+ * This endpoint is only called on click for the detail panel.
  *
- * The frontend fires multiple chunk requests in parallel (8 requests of ~30
- * items each) so each finishes well under Vercel's 10s function timeout.
- * This replaces the old single-category bulk call that took 1.5 minutes.
+ * Params:
+ *   item_id — Checkfront item ID
+ *   start   — YYYYMMDD
+ *   end     — YYYYMMDD
+ *
+ * Returns:
+ *   { itemId, name, available, slip, priceTitle, priceTotal, priceUnit, nights, dateRange }
  */
 
 module.exports = async function handler(req, res) {
@@ -17,20 +21,17 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { item_id, item_ids, start, end } = req.query;
-
-  if (!start || !end) {
-    return res.status(400).json({ error: 'start and end date parameters required (YYYYMMDD)' });
-  }
-  if (!item_id && !item_ids) {
-    return res.status(400).json({ error: 'item_id or item_ids parameter required' });
+  const { item_id, start, end } = req.query;
+  if (!item_id || !start || !end) {
+    return res.status(400).json({ error: 'item_id, start, and end parameters required' });
   }
 
   const subdomain = process.env.CF_SUBDOMAIN;
   const domain = process.env.CF_DOMAIN || 'manage.na1.bookingplatform.app';
   const baseUrl = `https://${subdomain}.${domain}/api/3.0`;
 
-  // Build headers — include auth only if credentials exist
+  // v3 Public API — no auth needed if Public API is enabled
+  // Falls back to authenticated if credentials are present
   const headers = { 'Accept': 'application/json' };
   if (process.env.CF_API_KEY && process.env.CF_API_SECRET) {
     const creds = Buffer.from(
@@ -40,95 +41,61 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    if (item_id) {
-      // ── Single item ──
-      const result = await fetchSingleItem(baseUrl, headers, item_id, start, end);
-      return res.json(result);
-    } else {
-      // ── Chunk of items ──
-      const ids = item_ids.split(',').map(id => id.trim()).filter(Boolean);
-      const results = await Promise.all(
-        ids.map(id => fetchSingleItem(baseUrl, headers, id, start, end))
-      );
-      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
-      return res.json({ results });
+    const url = `${baseUrl}/item/${item_id}?start_date=${start}&end_date=${end}`;
+    const resp = await fetch(url, { headers });
+
+    if (!resp.ok) {
+      return res.json({ itemId: parseInt(item_id), available: false, error: `API ${resp.status}` });
     }
+
+    const data = await resp.json();
+    const item = data.item || {};
+    const result = normalizeItem(item);
+
+    return res.json(result);
+
   } catch (err) {
-    console.error('Availability fetch error:', err.message);
-    return res.status(500).json({ error: err.message });
+    console.error('Availability error:', err.message);
+    return res.json({ itemId: parseInt(item_id), available: false, error: err.message });
   }
 };
 
 
 /**
- * Fetch rated availability for a single item.
- * v3 endpoint: GET /api/3.0/item/{item_id}?start_date=X&end_date=Y
- */
-async function fetchSingleItem(baseUrl, headers, itemId, start, end) {
-  const url = `${baseUrl}/item/${itemId}?start_date=${start}&end_date=${end}`;
-
-  try {
-    const resp = await fetch(url, { headers });
-
-    if (!resp.ok) {
-      return { itemId: parseInt(itemId), available: false, error: `API ${resp.status}` };
-    }
-
-    const data = await resp.json();
-    return normalizeItem(data.item || {});
-  } catch (err) {
-    return { itemId: parseInt(itemId), available: false, error: err.message };
-  }
-}
-
-
-/**
- * Normalize a v3 rated item into the format the frontend expects.
+ * Normalize a v3 rated item response.
  *
- * Confirmed v3 response structure (from live API):
- *
- *   item.item_id            — number (e.g. 106743)
- *   item.name               — string (e.g. "Barn B - Regular - Stall 200")
- *   item.rate.status        — "CLOSED" = sold out, anything else = available
- *   item.rate.available     — number (1 = stock exists, but NOT the same as bookable)
- *   item.rate.slip          — booking SLIP string (exists even when CLOSED)
- *   item.rate.summary.title — "Sold out" when closed, rate label when available
- *   item.rate.summary.price.title — HTML like "<span>$30.00</span>" (per-night)
- *   item.rate.summary.price.total — string like "$60.00" (stay total)
+ * Confirmed v3 structure (from live API testing):
+ *   item.rate.status        — "CLOSED" = sold out
+ *   item.rate.slip          — booking SLIP (exists even when CLOSED)
+ *   item.rate.summary.title — "Sold out" or rate label
+ *   item.rate.summary.price.title — HTML "<span>$30.00</span>" (per-night)
+ *   item.rate.summary.price.total — "$60.00" (stay total)
  *   item.rate.summary.price.unit  — "per night"
- *   item.rate.summary.details     — HTML with breakdown
  *   item.rate.summary.date        — date range string
  */
 function normalizeItem(item) {
   const rate = item.rate || {};
   const slip = rate.slip || null;
 
-  // CRITICAL: rate.status === "CLOSED" means sold out, even if rate.available === 1
-  // and even if a slip exists. Must check status, not just slip presence.
+  // rate.status === "CLOSED" means sold out, even if rate.available === 1
   const isAvailable = !!(slip && rate.status !== 'CLOSED');
 
-  // Extract price from rate.summary.price
-  const price = (rate.summary && rate.summary.price) || {};
-
-  // price.title is HTML like "<span>$30.00</span>" — strip tags for display
-  const priceTitle = stripHtml(price.title || '');
-  // price.total is already a string like "$60.00"
-  const priceTotal = price.total || '';
+  const summary = rate.summary || {};
+  const price = summary.price || {};
 
   return {
     itemId: parseInt(item.item_id) || 0,
     name: item.name || '',
     available: isAvailable,
     slip: slip,
-    priceTitle: priceTitle,
-    priceTotal: priceTotal,
+    priceTitle: stripHtml(price.title || ''),
+    priceTotal: price.total || '',
+    priceUnit: price.unit || '',
+    nights: item.days || 0,
+    dateRange: summary.date || '',
   };
 }
 
-
-/**
- * Strip HTML tags from a string.
- */
 function stripHtml(html) {
   return html.replace(/<[^>]*>/g, '').trim();
 }
