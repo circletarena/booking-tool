@@ -284,7 +284,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 //
 // Changes from Apps Script version:
 //   - google.script.run → fetch() calls to /api/* serverless functions
-//   - Batch availability is now ONE request instead of 11+ chunked calls
+//   - Batch availability fires 8 parallel chunks instead of 11+ serial calls
 //   - URL state support (deep linking via query params)
 //   - Fallback banner if API fails
 //   - SKU removed from customer-facing UI
@@ -399,58 +399,81 @@ function updateUrl(){
   window.history.replaceState(null,'',newUrl);
 }
 
-// ── Batch Availability (ONE request replaces 11+ chunked calls) ──
+// ── Batch Availability (parallel chunks, ~30 items each) ──────────
+// Fires 8 parallel requests instead of one giant category call.
+// Each chunk finishes well under Vercel's 10s timeout, and cells
+// color progressively as chunks complete.
+var CHUNK_SIZE = 30;
+
 async function runBatchAvailability(start,end){
   var myRun=++batchRunId;
   var startApi=fmtApi(start), endApi=fmtApi(end);
 
-  var totalStalls=Object.keys(productMap).length+Object.keys(rvProductMap).length;
-  if(totalStalls===0) return;
+  // Collect all item IDs from both product maps
+  var allIds=[];
+  for(var n in productMap) allIds.push(productMap[n].itemId);
+  for(var n in rvProductMap) allIds.push(rvProductMap[n].itemId);
+  if(allIds.length===0) return;
 
   setProgressLabel('Checking real-time availability...',false);
-  setProgressBar(30);
+  setProgressBar(10);
 
   // Mark all mapped stalls as "checking"
   document.querySelectorAll('.sc:not(.no-product)').forEach(function(c){
     c.classList.add('checking');
   });
 
-  try {
-    var resp=await fetch('/api/availability?categories=3742,3752&start='+startApi+'&end='+endApi);
-    if(!resp.ok) throw new Error('API returned '+resp.status);
-    var data=await resp.json();
+  // Split into chunks of CHUNK_SIZE
+  var chunks=[];
+  for(var i=0;i<allIds.length;i+=CHUNK_SIZE){
+    chunks.push(allIds.slice(i,i+CHUNK_SIZE));
+  }
 
-    if(myRun!==batchRunId) return; // Dates changed while loading
+  var completed=0;
+  var errors=0;
 
-    if(data.error){
-      setProgressLabel('Error: '+data.error,false);
-      showFallback();
-      return;
-    }
-
-    // Remove checking state from all cells
-    document.querySelectorAll('.sc.checking').forEach(function(c){
-      c.classList.remove('checking');
-    });
-
-    // Color all cells from the bulk response
-    if(data.results){
-      data.results.forEach(function(r){
-        if(r){ availCache[r.itemId]=r; colorCell(r); }
+  // Fire all chunks in parallel, color cells as each completes
+  var promises=chunks.map(function(chunk){
+    var ids=chunk.join(',');
+    return fetch('/api/availability?item_ids='+encodeURIComponent(ids)+'&start='+startApi+'&end='+endApi)
+      .then(function(resp){
+        if(!resp.ok) throw new Error('API '+resp.status);
+        return resp.json();
+      })
+      .then(function(data){
+        if(myRun!==batchRunId) return; // Dates changed, abort
+        if(data.results){
+          data.results.forEach(function(r){
+            if(r){ availCache[r.itemId]=r; colorCell(r); }
+          });
+        }
+        completed++;
+        var pct=Math.round(10+((completed/chunks.length)*90));
+        setProgressBar(pct);
+        setProgressLabel('Checked '+Math.min(completed*CHUNK_SIZE,allIds.length)+' of '+allIds.length+' stalls...',false);
+      })
+      .catch(function(err){
+        errors++;
+        completed++;
+        console.error('Chunk error:',err);
       });
-    }
+  });
 
-    setProgressLabel('✓ '+totalStalls+' stalls checked',true);
-    setProgressBar(100);
+  await Promise.all(promises);
 
-  } catch(err) {
-    if(myRun!==batchRunId) return;
-    console.error('Batch availability error:',err);
-    document.querySelectorAll('.sc.checking').forEach(function(c){
-      c.classList.remove('checking');
-    });
+  if(myRun!==batchRunId) return;
+
+  // Remove any remaining "checking" state
+  document.querySelectorAll('.sc.checking').forEach(function(c){
+    c.classList.remove('checking');
+  });
+
+  if(errors===chunks.length){
     setProgressLabel('Could not check availability — try refreshing',false);
     showFallback();
+  } else {
+    setProgressLabel('✓ '+allIds.length+' stalls checked',true);
+    setProgressBar(100);
   }
 }
 
