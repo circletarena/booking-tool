@@ -72,8 +72,8 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 /* Map view */
 .map-view { display:none; }
 .map-view.vis { display:block; }
-.map-back { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; margin:16px 20px 0; background:var(--sf2); border:1px solid var(--bd); border-radius:var(--radius); color:var(--txd); font-size:12px; cursor:pointer; transition:border-color 0.15s, color 0.15s; font-family:'DM Sans',sans-serif; }
-.map-back:hover { border-color:var(--gld); color:var(--tx); }
+.map-back { display:inline-flex; align-items:center; gap:6px; padding:10px 16px; margin:16px 20px 0; background:var(--sf3); border:1px solid var(--gld); border-radius:var(--radius); color:var(--gldl); font-size:13px; font-weight:600; cursor:pointer; transition:background 0.15s, color 0.15s; font-family:'DM Sans',sans-serif; }
+.map-back:hover { background:var(--gld); color:var(--bg); }
 
 .main { display:grid; grid-template-columns:1fr 340px; min-height:calc(100vh - 180px); }
 @media(max-width:900px){ .main { grid-template-columns:1fr; } }
