@@ -164,6 +164,8 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .widget-frame { background:#f5f3ef; border:1px solid var(--bd); border-radius:var(--radius); overflow:hidden; }
 .widget-frame-header { background:#e8e4dc; padding:10px 16px; font-size:11px; color:#4a4030; font-family:'JetBrains Mono',monospace; border-bottom:1px solid #d0c8b8; }
 .widget-wrap { min-height:100px; padding:16px; background:#fff; }
+.widget-hint { padding:10px 16px; background:#eae6de; border-bottom:1px solid #d0c8b8; font-size:13px; color:#4a4030; font-weight:500; }
+.widget-hint strong { color:#2a2010; }
 .widget-loading { font-size:12px; color:var(--txd); text-align:center; padding:20px; }
 
 .fallback-banner { display:none; padding:14px 20px; background:rgba(80,60,20,0.3); border-bottom:1px solid var(--bd); text-align:center; font-size:13px; color:var(--txd); }
@@ -260,7 +262,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
             <div class="detail-row"><span class="dk">Nights</span><span class="dv" id="iNights">—</span></div>
           </div>
           <div class="book-block">
-            <button class="btn-book" id="btnAddCart" onclick="addToCart()" disabled>Add to Cart</button>
+            <button class="btn-book" id="btnAddCart" onclick="bookSelected()" disabled>Book This Stall</button>
             <button class="btn-clear" onclick="clearSelection()">&#8249; Back to map</button>
           </div>
         </div>
@@ -268,7 +270,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
           <div class="cart-title">Your Cart</div>
           <div id="cartItems"></div>
           <div class="cart-count" id="cartCount"></div>
-          <button class="btn-book" id="btnReserveCart" onclick="launchBooking()" style="margin-top:10px;">Reserve All</button>
+          <button class="btn-book" id="btnReserveCart" onclick="launchBooking()" style="margin-top:10px;">Book Now</button>
         </div>
       </div>
     </div>
@@ -282,6 +284,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
   </div>
   <div class="widget-frame">
     <div class="widget-frame-header" id="widgetFrameHeader">Completing reservation...</div>
+    <div class="widget-hint">Click the <strong>Book Now</strong> button below to complete your reservation.</div>
     <div class="widget-wrap"><div class="widget-loading" id="widgetMsg">Loading reservation form...</div><div id="CF_WIDGET_TARGET"></div></div>
   </div>
 </div>
@@ -547,7 +550,7 @@ function renderStallDetail(result,itemId,label,cell,start,end){
   document.getElementById('iAvailDetails').style.display='block';
   var nights=nightsBetween(start,end);document.getElementById('iCheckin').textContent=fmtDisplay(start);document.getElementById('iCheckout').textContent=fmtDisplay(end);document.getElementById('iNights').textContent=nights+(nights===1?' night':' nights');
   if(isAvail){document.getElementById('iPrice').textContent=result.priceTitle||'\u2014';document.getElementById('iPriceUnit').textContent=result.priceUnit||'per night';document.getElementById('iPriceTotal').innerHTML=result.priceTotal?'Total: <strong>'+result.priceTotal+'</strong>':'';
-    var inCart=cart.some(function(c){return c.itemId===itemId;});var btn=document.getElementById('btnAddCart');btn.disabled=false;btn.textContent=inCart?'Remove from Cart':'Add to Cart';btn.onclick=function(){inCart?removeFromCart(itemId):addToCart();};}
+    var inCart=cart.some(function(c){return c.itemId===itemId;});var btn=document.getElementById('btnAddCart');btn.disabled=false;var isRv=selectedCell&&selectedCell.dataset.type==='rv';btn.textContent=isRv?'Book This RV Site':'Book This Stall';btn.onclick=function(){bookSelected();};}
   else{document.getElementById('iPrice').textContent='\u2014';document.getElementById('iPriceUnit').textContent='';document.getElementById('iPriceTotal').innerHTML='';document.getElementById('btnAddCart').disabled=true;document.getElementById('btnAddCart').textContent='Not Available';}
   updateCartUI();
 }
@@ -574,6 +577,13 @@ function updateCartUI(){
 }
 
 // ── BOOKING ─────────────────────────────────────────────────
+function bookSelected(){
+  if(!selectedCell||!selectedLabel)return;
+  var type=selectedCell.dataset.type,number=parseInt(type==='rv'?selectedCell.dataset.rv:selectedCell.dataset.stall),key=(type==='rv'?'r_':'s_')+number,prod=productMap[key];if(!prod)return;
+  var cached=availCache[prod.itemId];if(!cached||!cached.slip)return;
+  cart=[{itemId:prod.itemId,label:selectedLabel,type:type,number:number,slip:cached.slip}];
+  launchBooking();
+}
 function launchBooking(){
   if(cart.length===0)return;var first=cart[0],cl=cart.map(function(c){return c.label;}).join(', ');
   document.getElementById('widgetSection').classList.add('vis');document.getElementById('widgetStallLabel').textContent=cl;
