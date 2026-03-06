@@ -55,14 +55,11 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .area-card { background:var(--sf); border:1px solid var(--bd); border-radius:8px; padding:18px 20px; cursor:pointer; transition:border-color 0.2s, transform 0.15s, box-shadow 0.2s; position:relative; overflow:hidden; }
 .area-card:hover { border-color:var(--gld); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
 .area-card:focus-visible { outline:2px solid var(--gldl); outline-offset:2px; }
-.area-card .ac-name { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; margin-bottom:2px; }
-.area-card .ac-desc { font-size:11px; color:var(--txd); margin-bottom:12px; line-height:1.5; }
-.area-card .ac-stats { display:flex; gap:14px; flex-wrap:wrap; }
-.ac-stat { display:flex; flex-direction:column; gap:1px; }
-.ac-stat .val { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:500; color:var(--gldl); }
-.ac-stat .lbl { font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:var(--txd); }
-.ac-stat .val.avail { color:var(--grnl); }
-.ac-stat .val.full { color:var(--redl); }
+.area-card .ac-name { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; margin-bottom:4px; }
+.area-card .ac-desc { font-size:13px; color:var(--txd); margin-bottom:12px; line-height:1.5; }
+.ac-avail-ok { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; color:var(--grnl); margin-bottom:4px; }
+.ac-avail-low { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; color:var(--redl); margin-bottom:4px; }
+.ac-avail-pending { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--txm); margin-bottom:4px; }
 .ac-bar { margin-top:12px; height:4px; background:var(--bd); border-radius:2px; overflow:hidden; }
 .ac-bar-fill { height:100%; background:var(--grn); transition:width 0.5s ease; }
 .ac-bar-fill.low { background:var(--redl); }
@@ -301,12 +298,12 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 var FALLBACK_URL='https://circle-t-arena.manage.na1.bookingplatform.app/reserve';
 
 var AREAS=[
-  {id:'barn-b',name:'Barn B',desc:'230 regular stalls + 10 VIP RV hookups. The main barn.',categories:'3742,3752',subtitle:'Stalls 200\u2013429 \u00b7 VIP RVs 251\u2013260'},
-  {id:'barn-a',name:'Barn A',desc:'70 regular stalls + 7 turn-out stalls. Upper and lower sections.',categories:'3740,3756',subtitle:'Stalls 1\u201370 (incl. Turn Out 1\u20137)'},
-  {id:'barn-c',name:'Barn C',desc:'120 stalls (regular + VIP) and 64 RV sites.',categories:'3743,3748,3747,3751',subtitle:'Stalls 500\u2013619 \u00b7 RVs 500\u2013563'},
-  {id:'vip-pool',name:'VIP Pool',desc:'30 VIP stalls and 22 VIP RV hookups.',categories:'3758,3755',subtitle:'VIP Stalls 71\u2013100 \u00b7 VIP RVs 1\u201322'},
-  {id:'vip-hill',name:'VIP Hill',desc:'26 VIP stalls and 9 VIP RV hookups on the hill.',categories:'3746,3749',subtitle:'VIP Stalls 430\u2013455 \u00b7 VIP RVs 242\u2013250'},
-  {id:'treeline',name:'Treeline',desc:'70 RV sites along the treeline. 30-amp and full hookups.',categories:'3757',subtitle:'RVs 23\u201350 \u00b7 RVs 200\u2013241'}
+  {id:'barn-b',name:'Barn B',desc:'230 stalls and 10 VIP RV sites. The main barn with five paired rows.',categories:'3742,3752',subtitle:'Stalls 200\u2013429 \u00b7 VIP RV Sites 251\u2013260'},
+  {id:'barn-a',name:'Barn A',desc:'70 regular stalls and 7 turn-out stalls. Upper and lower sections.',categories:'3740,3756',subtitle:'Stalls 1\u201370 (incl. Turn Out 1\u20137)'},
+  {id:'barn-c',name:'Barn C',desc:'120 stalls and 64 RV sites. Mix of regular and VIP.',categories:'3743,3748,3747,3751',subtitle:'Stalls 500\u2013619 \u00b7 RV Sites 500\u2013563'},
+  {id:'vip-pool',name:'VIP Pool',desc:'30 VIP stalls and 22 VIP RV sites in the pool area.',categories:'3758,3755',subtitle:'VIP Stalls 71\u2013100 \u00b7 VIP RV Sites 1\u201322'},
+  {id:'vip-hill',name:'VIP Hill',desc:'26 VIP stalls and 9 VIP RV sites on the hill.',categories:'3746,3749',subtitle:'VIP Stalls 430\u2013455 \u00b7 VIP RV Sites 242\u2013250'},
+  {id:'treeline',name:'Treeline',desc:'70 RV sites along the treeline. 30-amp and full hookups.',categories:'3757',subtitle:'RV Sites 23\u201350 \u00b7 RV Sites 200\u2013241'}
 ];
 
 var productMap={},bookedMap={},availCache={},cart=[],selectedCell=null,selectedLabel=null,currentArea=null,batchRunId=0,mapReady=false,pendingBatch=false,isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0,lastFetchedAt=null,staleTimer=null,hubAvailData={};
@@ -352,15 +349,15 @@ function renderHubCards(){
   var html='';
   for(var i=0;i<AREAS.length;i++){
     var a=AREAS[i],data=hubAvailData[a.id],loading=data&&data.loading,loaded=data&&data.loaded;
-    var avail=loaded?data.available:'\u2014',total=loaded?data.total:'\u2014';
-    var pct=loaded&&data.total>0?Math.round((data.available/data.total)*100):0;
-    var ac=loaded?(pct<15?'full':'avail'):'';
+    var avail=loaded?data.available:0,total=loaded?data.total:0;
+    var low=loaded&&total>0&&(avail/total)<0.15;
+    var availText=loaded?(avail+' of '+total+' spots available'):'Select dates to check';
+    var availClass=loaded?(low?'ac-avail-low':'ac-avail-ok'):'ac-avail-pending';
+    var barPct=loaded&&total>0?Math.round((avail/total)*100):0;
     html+='<div class="area-card'+(loading?' loading':'')+'" tabindex="0" role="button" aria-label="'+a.name+'" onclick="enterArea(AREAS['+i+'])" onkeydown="if(event.key===\'Enter\')enterArea(AREAS['+i+'])">';
     html+='<div class="ac-name">'+a.name+'</div><div class="ac-desc">'+a.desc+'</div>';
-    html+='<div class="ac-stats"><div class="ac-stat"><span class="val '+ac+'">'+avail+'</span><span class="lbl">Available</span></div>';
-    html+='<div class="ac-stat"><span class="val">'+total+'</span><span class="lbl">Total</span></div>';
-    if(loaded)html+='<div class="ac-stat"><span class="val '+ac+'">'+pct+'%</span><span class="lbl">Open</span></div>';
-    html+='</div><div class="ac-bar"><div class="ac-bar-fill'+(pct<15?' low':'')+'" style="width:'+pct+'%"></div></div>';
+    html+='<div class="'+availClass+'">'+availText+'</div>';
+    html+='<div class="ac-bar"><div class="ac-bar-fill'+(low?' low':'')+'" style="width:'+barPct+'%"></div></div>';
     html+='<div class="ac-checking">Checking availability...</div><div class="ac-arrow">\u203a</div></div>';
   }
   document.getElementById('hubGrid').innerHTML=html;
@@ -370,13 +367,24 @@ async function fetchHubAvailability(start,end){
   var sa=fmtApi(start),ea=fmtApi(end);
   for(var i=0;i<AREAS.length;i++)hubAvailData[AREAS[i].id]={available:0,total:0,loaded:false,loading:true};
   renderHubCards();
+  // Fetch bookings once (API returns all areas regardless)
+  var allBooked={};
+  try{var br=await fetch('/api/bookings?start='+sa+'&end='+ea);var bd=await br.json();allBooked=bd.booked||{};}catch(e){}
+  // Build a set of booked keys for fast lookup
+  var bookedKeys=new Set(Object.keys(allBooked));
+  // Fetch products per area and count only matching booked keys
   var promises=AREAS.map(function(area){
     return fetch('/api/products?categories='+area.categories).then(function(r){return r.json();}).then(function(pd){
-      var total=(pd.products||[]).length;
-      return fetch('/api/bookings?start='+sa+'&end='+ea+'&categories='+area.categories).then(function(r){return r.json();}).then(function(bd){
-        var booked=Object.keys(bd.booked||{}).length;
-        hubAvailData[area.id]={available:total-booked,total:total,loaded:true,loading:false};renderHubCards();
-      });
+      var products=pd.products||[],total=products.length,bookedCount=0;
+      for(var i=0;i<products.length;i++){
+        var name=products[i].name||'';
+        var sm=name.match(/stall\s+(\d+)/i),rm=name.match(/rv\s+(\d+)/i)||name.match(/rv(\d+)/i);
+        var key=null;
+        if(sm)key='stall_'+parseInt(sm[1]);
+        else if(rm)key='rv_'+parseInt(rm[1]);
+        if(key&&bookedKeys.has(key))bookedCount++;
+      }
+      hubAvailData[area.id]={available:total-bookedCount,total:total,loaded:true,loading:false};renderHubCards();
     }).catch(function(){hubAvailData[area.id]={available:0,total:0,loaded:true,loading:false};renderHubCards();});
   });
   await Promise.all(promises);
@@ -416,7 +424,7 @@ async function loadAreaProducts(area){
 }
 
 // ── Cell Builders ───────────────────────────────────────────
-function mkCell(type,num){var key=(type==='stall'?'s_':'r_')+num,prod=productMap[key],has=!!prod,label=(type==='rv'?'RV ':'Stall ')+num;return '<div class="sc'+(type==='rv'?' rc':'')+(has?'':' no-product')+'" data-'+(type==='rv'?'rv':'stall')+'="'+num+'" data-type="'+type+'" role="gridcell" tabindex="'+(has?'0':'-1')+'" aria-label="'+label+'">'+num+'</div>';}
+function mkCell(type,num){var key=(type==='stall'?'s_':'r_')+num,prod=productMap[key],has=!!prod,label=(type==='rv'?'RV Site ':'Stall ')+num;return '<div class="sc'+(type==='rv'?' rc':'')+(has?'':' no-product')+'" data-'+(type==='rv'?'rv':'stall')+'="'+num+'" data-type="'+type+'" role="gridcell" tabindex="'+(has?'0':'-1')+'" aria-label="'+label+'">'+num+'</div>';}
 function mkRow(type,nums){var h='<div class="stall-row" role="row">';for(var i=0;i<nums.length;i++){if(nums[i]==='|')h+='</div><div class="stall-row" role="row">';else h+=mkCell(type,nums[i]);}return h+'</div>';}
 function mkRvRow(nums){var h='<div class="rv-row" role="row">';for(var i=0;i<nums.length;i++){if(nums[i]==='|')h+='<div style="width:10px"></div>';else h+=mkCell('rv',nums[i]);}return h+'</div>';}
 
@@ -486,8 +494,8 @@ async function runBookingsCheck(start,end){
     bookedMap=data.booked||{};
     document.querySelectorAll('.sc:not(.no-product)').forEach(function(c){
       c.classList.remove('checking');var type=c.dataset.type,num=type==='rv'?c.dataset.rv:c.dataset.stall,key=type==='rv'?'rv_'+num:'stall_'+num;
-      if(bookedMap[key]){c.classList.add('unavailable');c.setAttribute('aria-label',(type==='rv'?'RV ':'Stall ')+num+', booked');}
-      else{c.classList.add('available');c.setAttribute('aria-label',(type==='rv'?'RV ':'Stall ')+num+', available');}
+      if(bookedMap[key]){c.classList.add('unavailable');c.setAttribute('aria-label',(type==='rv'?'RV Site ':'Stall ')+num+', booked');}
+      else{c.classList.add('available');c.setAttribute('aria-label',(type==='rv'?'RV Site ':'Stall ')+num+', available');}
     });
     setProgressLabel('\u2713 '+total+' spots checked \u2014 '+currentArea.name,true);setProgressBar(100);startStaleTimer();
   }catch(err){if(myRun!==batchRunId)return;document.querySelectorAll('.sc.checking').forEach(function(c){c.classList.remove('checking');});setProgressLabel('Could not check availability',false);showFallback();}
@@ -513,7 +521,7 @@ function handleCellSelect(cell){
   var d=getDates();if(!d.start||!d.end||nightsBetween(d.start,d.end)<=0){setProgressLabel('\u26a0 Select valid dates first',false);return;}
   if(selectedCell)selectedCell.classList.remove('selected');selectedCell=cell;cell.classList.add('selected');
   var type=cell.dataset.type,number=parseInt(type==='rv'?cell.dataset.rv:cell.dataset.stall),key=(type==='rv'?'r_':'s_')+number,prod=productMap[key];if(!prod)return;
-  selectedLabel=type==='rv'?'RV '+number:'Stall '+number;
+  selectedLabel=type==='rv'?'RV Site '+number:'Stall '+number;
   showInfoPanel(selectedLabel);fetchStallDetail(prod.itemId,selectedLabel,cell,d.start,d.end);updateUrl();
   if(isTouch)document.getElementById('infoPanel').classList.add('vis');
 }
