@@ -309,7 +309,7 @@ var AREAS=[
   {id:'treeline',name:'Treeline',desc:'70 RV sites along the treeline. 30-amp and full hookups.',categories:'3757',subtitle:'RV Sites 23\u201350 \u00b7 RV Sites 200\u2013241'}
 ];
 
-var productMap={},bookedMap={},availCache={},cart=[],selectedCell=null,selectedLabel=null,currentArea=null,batchRunId=0,mapReady=false,pendingBatch=false,isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0,lastFetchedAt=null,staleTimer=null,hubAvailData={};
+var productMap={},bookedMap={},closedSet=new Set(),availCache={},cart=[],selectedCell=null,selectedLabel=null,currentArea=null,batchRunId=0,mapReady=false,pendingBatch=false,isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0,lastFetchedAt=null,staleTimer=null,hubAvailData={};
 
 function today(){var d=new Date();d.setHours(0,0,0,0);return d;}
 function fmtInput(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -327,7 +327,7 @@ function initDates(){
   if(ua){var area=AREAS.find(function(a){return a.id===ua;});if(area)setTimeout(function(){enterArea(area);},100);}
 }
 function onDateChange(){
-  updateNightsPill();bookedMap={};availCache={};cart=[];updateCartUI();batchRunId++;hubAvailData={};
+  updateNightsPill();bookedMap={};closedSet=new Set();availCache={};cart=[];updateCartUI();batchRunId++;hubAvailData={};
   document.querySelectorAll('.sc').forEach(function(c){c.classList.remove('available','unavailable','checking','selected','in-cart');});
   clearInfoPanel();closeWidget();updateUrl();clearStaleTimer();
   var s=document.getElementById('startDate').value,e=document.getElementById('endDate').value;
@@ -345,7 +345,7 @@ function updateUrl(){
 }
 function startStaleTimer(){clearStaleTimer();lastFetchedAt=Date.now();staleTimer=setInterval(function(){var el=Math.round((Date.now()-lastFetchedAt)/60000);if(el>=2){var lb=document.getElementById('progressLabel'),d=getDates();if(d.start&&d.end&&nightsBetween(d.start,d.end)>0){lb.innerHTML='Checked '+el+' min ago<span class="stale-link" onclick="refreshAvailability()">\u21bb Refresh</span>';lb.className='progress-label';}}},30000);}
 function clearStaleTimer(){if(staleTimer){clearInterval(staleTimer);staleTimer=null;}}
-function refreshAvailability(){var d=getDates();if(d.start&&d.end&&nightsBetween(d.start,d.end)>0){bookedMap={};availCache={};if(currentArea)runBookingsCheck(d.start,d.end);fetchHubAvailability(d.start,d.end);}}
+function refreshAvailability(){var d=getDates();if(d.start&&d.end&&nightsBetween(d.start,d.end)>0){bookedMap={};closedSet=new Set();availCache={};if(currentArea)runBookingsCheck(d.start,d.end);fetchHubAvailability(d.start,d.end);}}
 
 // ── HUB ─────────────────────────────────────────────────────
 function renderHubCards(){
@@ -370,24 +370,26 @@ async function fetchHubAvailability(start,end){
   var sa=fmtApi(start),ea=fmtApi(end);
   for(var i=0;i<AREAS.length;i++)hubAvailData[AREAS[i].id]={available:0,total:0,loaded:false,loading:true};
   renderHubCards();
-  // Fetch bookings once (API returns all areas regardless)
-  var allBooked={};
+  // Fetch bookings and closures once (both return all areas)
+  var allBooked={},allClosedIds=new Set();
   try{var br=await fetch('/api/bookings?start='+sa+'&end='+ea);var bd=await br.json();allBooked=bd.booked||{};}catch(e){}
-  // Build a set of booked keys for fast lookup
+  try{var cr=await fetch('/api/closures?start='+sa+'&end='+ea);var cd=await cr.json();(cd.closedProductIds||[]).forEach(function(id){allClosedIds.add(Number(id));});}catch(e){}
   var bookedKeys=new Set(Object.keys(allBooked));
-  // Fetch products per area and count only matching booked keys
+  // Fetch products per area and count booked + closed
   var promises=AREAS.map(function(area){
     return fetch('/api/products?categories='+area.categories).then(function(r){return r.json();}).then(function(pd){
-      var products=pd.products||[],total=products.length,bookedCount=0;
+      var products=pd.products||[],total=products.length,unavailCount=0;
       for(var i=0;i<products.length;i++){
-        var name=products[i].name||'';
+        var p=products[i],name=p.name||'';
         var sm=name.match(/stall\s+(\d+)/i),rm=name.match(/rv\s+(\d+)/i)||name.match(/rv(\d+)/i);
         var key=null;
         if(sm)key='stall_'+parseInt(sm[1]);
         else if(rm)key='rv_'+parseInt(rm[1]);
-        if(key&&bookedKeys.has(key))bookedCount++;
+        var isBooked=key&&bookedKeys.has(key);
+        var isClosed=allClosedIds.has(Number(p.id));
+        if(isBooked||isClosed)unavailCount++;
       }
-      hubAvailData[area.id]={available:total-bookedCount,total:total,loaded:true,loading:false};renderHubCards();
+      hubAvailData[area.id]={available:total-unavailCount,total:total,loaded:true,loading:false};renderHubCards();
     }).catch(function(){hubAvailData[area.id]={available:0,total:0,loaded:true,loading:false};renderHubCards();});
   });
   await Promise.all(promises);
@@ -396,14 +398,14 @@ async function fetchHubAvailability(start,end){
 
 // ── AREA MAP ────────────────────────────────────────────────
 function enterArea(area){
-  currentArea=area;productMap={};bookedMap={};availCache={};cart=[];mapReady=false;pendingBatch=false;selectedCell=null;selectedLabel=null;
+  currentArea=area;productMap={};bookedMap={};closedSet=new Set();availCache={};cart=[];mapReady=false;pendingBatch=false;selectedCell=null;selectedLabel=null;
   document.getElementById('hubView').style.display='none';document.getElementById('mapView').classList.add('vis');
   document.getElementById('mapTitle').textContent=area.name;document.getElementById('mapSubtitle').textContent=area.subtitle;
   document.getElementById('mapContent').innerHTML='';document.getElementById('mapLoading').style.display='flex';
   clearInfoPanel();updateCartUI();updateUrl();loadAreaProducts(area);
 }
 function backToHub(){
-  currentArea=null;productMap={};bookedMap={};availCache={};cart=[];selectedCell=null;selectedLabel=null;mapReady=false;clearStaleTimer();
+  currentArea=null;productMap={};bookedMap={};closedSet=new Set();availCache={};cart=[];selectedCell=null;selectedLabel=null;mapReady=false;clearStaleTimer();
   document.getElementById('mapView').classList.remove('vis');document.getElementById('hubView').style.display='block';
   clearInfoPanel();closeWidget();updateUrl();
   var d=getDates();if(d.start&&d.end&&nightsBetween(d.start,d.end)>0)fetchHubAvailability(d.start,d.end);
@@ -491,13 +493,22 @@ async function runBookingsCheck(start,end){
   setProgressLabel('Checking real-time availability...',false);setProgressBar(30);
   document.querySelectorAll('.sc:not(.no-product)').forEach(function(c){c.classList.add('checking');});
   try{
-    var resp=await fetch('/api/bookings?start='+sa+'&end='+ea+'&categories='+currentArea.categories);
-    if(!resp.ok)throw new Error('API '+resp.status);var data=await resp.json();
-    if(myRun!==batchRunId)return;if(data.error){setProgressLabel('Error: '+data.error,false);showFallback();return;}
-    bookedMap=data.booked||{};
+    // Fetch bookings and closures in parallel
+    var results=await Promise.all([
+      fetch('/api/bookings?start='+sa+'&end='+ea+'&categories='+currentArea.categories).then(function(r){return r.json();}),
+      fetch('/api/closures?start='+sa+'&end='+ea).then(function(r){return r.json();}).catch(function(){return{closedProductIds:[]};})
+    ]);
+    if(myRun!==batchRunId)return;
+    var bookData=results[0],closureData=results[1];
+    if(bookData.error){setProgressLabel('Error: '+bookData.error,false);showFallback();return;}
+    bookedMap=bookData.booked||{};
+    closedSet=new Set((closureData.closedProductIds||[]).map(function(id){return Number(id);}));
     document.querySelectorAll('.sc:not(.no-product)').forEach(function(c){
-      c.classList.remove('checking');var type=c.dataset.type,num=type==='rv'?c.dataset.rv:c.dataset.stall,key=type==='rv'?'rv_'+num:'stall_'+num;
-      if(bookedMap[key]){c.classList.add('unavailable');c.setAttribute('aria-label',(type==='rv'?'RV Site ':'Stall ')+num+', booked');}
+      c.classList.remove('checking');var type=c.dataset.type,num=type==='rv'?c.dataset.rv:c.dataset.stall;
+      var key=type==='rv'?'rv_'+num:'stall_'+num;
+      var prodKey=(type==='rv'?'r_':'s_')+num,prod=productMap[prodKey];
+      var isClosed=prod&&closedSet.has(Number(prod.itemId));
+      if(bookedMap[key]||isClosed){c.classList.add('unavailable');c.setAttribute('aria-label',(type==='rv'?'RV Site ':'Stall ')+num+', '+(isClosed?'closed':'booked'));}
       else{c.classList.add('available');c.setAttribute('aria-label',(type==='rv'?'RV Site ':'Stall ')+num+', available');}
     });
     setProgressLabel('\u2713 '+total+' spots checked \u2014 '+currentArea.name,true);setProgressBar(100);startStaleTimer();
