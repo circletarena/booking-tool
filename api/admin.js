@@ -82,25 +82,13 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      // Trigger a redeploy so the new value takes effect
-      // We do this by creating a new deployment from the latest commit
-      const deployResp = await fetch(
-        `https://api.vercel.com/v13/deployments`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${vercelToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: projectId,
-            project: projectId,
-            target: 'production',
-          }),
-        }
-      );
-
-      const deployOk = deployResp.ok;
+      // Trigger a redeploy via deploy hook so the new value takes effect
+      const deployHookUrl = process.env.DEPLOY_HOOK_URL;
+      let deployOk = false;
+      if (deployHookUrl) {
+        const deployResp = await fetch(deployHookUrl, { method: 'POST' });
+        deployOk = deployResp.ok;
+      }
 
       return res.json({
         success: true,
