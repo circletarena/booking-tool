@@ -8,6 +8,12 @@
  * "is each of 240 stalls available?" (slow — 370ms per item),
  * we ask "what's booked?" and mark everything else as available.
  *
+ * LOOKBACK / MAINTENANCE HOLD:
+ * After a booking ends, the stall stays marked as unavailable for
+ * LOOKBACK_DAYS (env var, default 3). This prevents online customers
+ * from seeing stalls as available before they've been cleaned/prepped.
+ * The lookback window is adjustable via the /admin page.
+ *
  * Params:
  *   start  — YYYYMMDD (check-in date)
  *   end    — YYYYMMDD (check-out date)
@@ -15,9 +21,10 @@
  * Returns:
  *   {
  *     booked: {
- *       "106743": { code: "PRLM-071125", customer: "First L.", status: "PAID" },
+ *       "stall_337": { code: "PRLM-071125", customer: "First L.", status: "PAID", maintenance: false },
  *       ...
  *     },
+ *     lookbackDays: 3,
  *     fetchedAt: "2026-03-04T19:30:00Z"
  *   }
  *
@@ -26,6 +33,7 @@
 
 const V4_BASE = 'https://circle-t-arena.manage.na1.bookingplatform.app/api/4.0';
 const PAGE_SIZE = 100;
+const DEFAULT_LOOKBACK_DAYS = 3;
 
 // Statuses that mean "this stall is taken" — everything except VOID
 const ACTIVE_STATUSES = new Set(['PAID', 'STOP', 'PRODU', 'PRE']);
@@ -53,8 +61,15 @@ module.exports = async function handler(req, res) {
   };
 
   // Convert YYYYMMDD to ISO date strings for v4 API
-  const isoStart = `${start.substring(0,4)}-${start.substring(4,6)}-${start.substring(6,8)}T00:00:00`;
   const isoEnd = `${end.substring(0,4)}-${end.substring(4,6)}-${end.substring(6,8)}T23:59:59`;
+
+  // Widen the search window to catch bookings that ended recently
+  // (within the lookback/maintenance hold period)
+  const lookbackDays = parseInt(process.env.LOOKBACK_DAYS) || DEFAULT_LOOKBACK_DAYS;
+  const startDate = new Date(`${start.substring(0,4)}-${start.substring(4,6)}-${start.substring(6,8)}T00:00:00`);
+  const lookbackDate = new Date(startDate);
+  lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
+  const isoStart = lookbackDate.toISOString().substring(0, 19);
 
   try {
     // ── Fetch all bookings overlapping the date range ──
@@ -85,6 +100,7 @@ module.exports = async function handler(req, res) {
     // Use the same exclusive end-date logic as OccupancyBackend.gs
     const rangeStartIso = `${start.substring(0,4)}-${start.substring(4,6)}-${start.substring(6,8)}`;
     const rangeEndIso = `${end.substring(0,4)}-${end.substring(4,6)}-${end.substring(6,8)}`;
+    const lookbackStartIso = lookbackDate.toISOString().substring(0, 10);
 
     const booked = {};
     const seen = new Set();
@@ -100,13 +116,23 @@ module.exports = async function handler(req, res) {
       const bEnd = String(booking.end).substring(0, 10);
       const isSameDay = (bStart === bEnd);
 
+      // Check if booking overlaps the actual selected date range
       let isActive;
       if (isSameDay) {
         isActive = (bStart >= rangeStartIso && bStart <= rangeEndIso);
       } else {
         isActive = (bStart <= rangeEndIso && bEnd > rangeStartIso);
       }
-      if (!isActive) continue;
+
+      // Check if booking ended recently (within lookback window)
+      // A booking is in maintenance if it ended after the lookback start
+      // but before the selected range starts (so it's not actively overlapping)
+      let isMaintenance = false;
+      if (!isActive && !isSameDay) {
+        isMaintenance = (bEnd > lookbackStartIso && bEnd <= rangeStartIso);
+      }
+
+      if (!isActive && !isMaintenance) continue;
 
       // Parse itemSummary to find stall/RV names, then match to item IDs
       // v4 doesn't return item IDs directly, so we extract stall/RV numbers
@@ -142,12 +168,16 @@ module.exports = async function handler(req, res) {
         status: booking.statusId,
         start: bStart,
         end: bEnd,
+        maintenance: isMaintenance,
       };
 
       for (const n of stallNumbers) {
+        // Don't overwrite an active booking with a maintenance hold
+        if (booked['stall_' + n] && !booked['stall_' + n].maintenance) continue;
         booked['stall_' + n] = info;
       }
       for (const n of rvNumbers) {
+        if (booked['rv_' + n] && !booked['rv_' + n].maintenance) continue;
         booked['rv_' + n] = info;
       }
     }
@@ -157,6 +187,7 @@ module.exports = async function handler(req, res) {
 
     return res.json({
       booked,
+      lookbackDays,
       totalBookings: allBookings.length,
       activeBookings: seen.size,
       fetchedAt: new Date().toISOString(),
