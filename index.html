@@ -91,7 +91,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .section-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--gldd); font-family:'JetBrains Mono',monospace; margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid var(--bd); }
 .row-group { margin-bottom:10px; }
 .stall-row { display:flex; gap:2px; margin-bottom:2px; }
-.aisle { height:18px; display:flex; align-items:center; justify-content:center; font-size:8px; color:var(--txm); font-family:'JetBrains Mono',monospace; letter-spacing:0.05em; margin:2px 0; }
+.aisle { height:20px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--txd); font-family:'JetBrains Mono',monospace; letter-spacing:0.05em; margin:2px 0; }
 .rv-row { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:4px; }
 .block-wrap { display:flex; gap:16px; flex-wrap:wrap; }
 
@@ -191,20 +191,20 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .err { padding:12px 16px; background:#2a1010; border:1px solid var(--red); border-radius:var(--radius); color:#c06060; font-size:12px; margin:16px 0; }
 
 /* ── Landmark frame (wraps around grid, doesn't affect grid layout) ── */
-.lm-frame { position:relative; border:1px solid var(--bd); border-radius:6px; padding:40px 36px 12px; margin-bottom:12px; }
-.lm-frame-top { position:absolute; top:0; left:0; right:0; text-align:center; padding:10px 0; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; color:var(--txd); letter-spacing:0.06em; border-bottom:1px solid var(--bd); background:var(--sf); border-radius:6px 6px 0 0; }
+.lm-frame { position:relative; border:1px solid var(--bd); border-radius:6px; padding:42px 38px 12px; margin-bottom:12px; }
+.lm-frame-top { position:absolute; top:0; left:0; right:0; text-align:center; padding:10px 0; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; color:var(--txd); letter-spacing:0.08em; text-transform:uppercase; border-bottom:1px solid var(--bd); background:var(--sf); border-radius:6px 6px 0 0; }
 .lm-frame-top span { color:var(--gld); margin:0 6px; }
-.lm-frame-left { position:absolute; left:0; top:40px; bottom:0; width:34px; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:500; color:var(--gld); letter-spacing:0.1em; text-transform:uppercase; border-right:1px solid var(--bd); background:var(--sf); border-radius:0 0 0 6px; }
-.lm-frame-right { position:absolute; right:0; top:40px; bottom:0; width:34px; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:500; color:var(--gld); letter-spacing:0.08em; text-transform:uppercase; border-left:1px solid var(--bd); background:var(--sf); border-radius:0 0 6px 0; }
-.lm-private { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--txd); border:1px solid var(--bd); border-radius:3px; padding:6px 10px; display:inline-block; margin:6px 0; line-height:1.4; background:var(--sf); }
+.lm-frame-left { position:absolute; left:0; top:42px; bottom:0; width:36px; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:var(--txd); letter-spacing:0.1em; text-transform:uppercase; border-right:1px solid var(--bd); background:var(--sf); border-radius:0 0 0 6px; }
+.lm-frame-right { position:absolute; right:0; top:42px; bottom:0; width:36px; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--txd); letter-spacing:0.08em; text-transform:uppercase; border-left:1px solid var(--bd); background:var(--sf); border-radius:0 0 6px 0; }
+.lm-private { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--txd); border:1px solid var(--bd); border-radius:3px; padding:8px 12px; display:inline-block; margin:6px 0; line-height:1.4; background:var(--sf); }
 .lm-bottom-row { display:flex; justify-content:space-between; align-items:flex-start; padding:10px 0 0; margin-top:10px; border-top:1px solid var(--bd); gap:8px; flex-wrap:wrap; }
-.lm-bottom-box { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--txd); border:1px solid var(--bd); border-radius:3px; padding:5px 10px; background:var(--sf); }
-.lm-bottom-center { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--txd); text-align:center; flex:1; padding-top:4px; }
+.lm-bottom-box { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; color:var(--txd); border:1px solid var(--bd); border-radius:3px; padding:6px 12px; background:var(--sf); }
+.lm-bottom-center { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--txd); text-align:center; flex:1; padding-top:6px; }
 .lm-footer { text-align:center; padding:14px 0 6px; margin-top:10px; border-top:1px solid var(--bd); }
-.lm-footer-line { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--txd); margin-bottom:6px; letter-spacing:0.04em; }
+.lm-footer-line { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--txd); margin-bottom:6px; letter-spacing:0.04em; }
 .lm-footer-line span { color:var(--gld); }
-.lm-footer-main { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:var(--txd); margin-bottom:4px; }
-.lm-footer-sub { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--txm); line-height:1.5; }
+.lm-footer-main { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--txd); margin-bottom:4px; letter-spacing:0.12em; }
+.lm-footer-sub { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--txd); line-height:1.6; }
 
 /* ── Layout toggle (feature flag: SHOW_LAYOUT_TOGGLE) ────── */
 .layout-toggle-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; margin-bottom:14px; background:var(--sf3); border:1px solid var(--bd); border-radius:var(--radius); color:var(--txd); font-size:11px; font-family:'JetBrains Mono',monospace; cursor:pointer; transition:border-color 0.15s, color 0.15s, background 0.15s; }
