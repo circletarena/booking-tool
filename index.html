@@ -301,12 +301,12 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 var FALLBACK_URL='https://circle-t-arena.manage.na1.bookingplatform.app/reserve';
 
 var AREAS=[
-  {id:'barn-b',name:'Barn B',desc:'230 stalls and 10 VIP RV sites. The main barn with five paired rows.',categories:'3742,3752',subtitle:'Stalls 200\u2013429 \u00b7 VIP RV Sites 251\u2013260'},
   {id:'barn-a',name:'Barn A',desc:'70 regular stalls and 7 turn-out stalls. Upper and lower sections.',categories:'3740,3756',subtitle:'Stalls 1\u201370 (incl. Turn Out 1\u20137)'},
+  {id:'barn-b',name:'Barn B',desc:'230 stalls and 10 VIP RV sites. The main barn with five paired rows.',categories:'3742,3752',subtitle:'Stalls 200\u2013429 \u00b7 VIP RV Sites 251\u2013260'},
   {id:'barn-c',name:'Barn C',desc:'120 stalls and 64 RV sites. Mix of regular and VIP.',categories:'3743,3748,3747,3751',subtitle:'Stalls 500\u2013619 \u00b7 RV Sites 500\u2013563'},
   {id:'vip-pool',name:'VIP Pool',desc:'30 VIP stalls and 22 VIP RV sites in the pool area.',categories:'3758,3755',subtitle:'VIP Stalls 71\u2013100 \u00b7 VIP RV Sites 1\u201322'},
-  {id:'vip-hill',name:'VIP Hill',desc:'26 VIP stalls and 9 VIP RV sites on the hill.',categories:'3746,3749',subtitle:'VIP Stalls 430\u2013455 \u00b7 VIP RV Sites 242\u2013250'},
-  {id:'treeline',name:'Treeline',desc:'70 RV sites along the treeline. 30-amp and full hookups.',categories:'3757',subtitle:'RV Sites 23\u201350 \u00b7 RV Sites 200\u2013241'}
+  {id:'treeline',name:'Treeline',desc:'70 RV sites along the treeline. 30-amp and full hookups.',categories:'3757',subtitle:'RV Sites 23\u201350 \u00b7 RV Sites 200\u2013241'},
+  {id:'vip-hill',name:'VIP Hill',desc:'26 VIP stalls and 9 VIP RV sites on the hill.',categories:'3746,3749',subtitle:'VIP Stalls 430\u2013455 \u00b7 VIP RV Sites 242\u2013250'}
 ];
 
 var productMap={},bookedMap={},closedSet=new Set(),availCache={},cart=[],selectedCell=null,selectedLabel=null,currentArea=null,batchRunId=0,mapReady=false,pendingBatch=false,isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0,lastFetchedAt=null,staleTimer=null,hubAvailData={};
