@@ -86,7 +86,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 @keyframes spin { to { transform:rotate(360deg); } }
 .map-loading p { font-size:12px; color:var(--txd); }
 
-.barn-wrap { display:flex; gap:20px; flex-wrap:wrap; }
+.barn-wrap { display:flex; gap:0; flex-wrap:wrap; }
 .barn-section { flex:1; min-width:280px; }
 .section-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--gldd); font-family:'JetBrains Mono',monospace; margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid var(--bd); }
 .row-group { margin-bottom:10px; }
@@ -512,9 +512,9 @@ var MAP_BUILDERS={
     if(i<p3.length-1)h+='<div class="aisle">\u2014 10\u20325\u2033 \u2014</div>';
     if(i===1)h+='<div class="lm-private">Private Barn<br>Not for Use</div>';
   }
-  h+='</div></div><div class="barn-section"><div class="section-label" id="sec200label">Stalls 200\u2013299</div><div role="grid" aria-labelledby="sec200label">';
+  h+='</div></div><div style="display:flex;flex-direction:column;justify-content:space-around;align-items:center;padding:0 4px;min-width:50px;"><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div></div><div class="barn-section"><div class="section-label" id="sec200label">Stalls 200\u2013299</div><div role="grid" aria-labelledby="sec200label">';
   var p2=[[[299,298,297,296,295,294,293,292,291,290],[280,281,282,283,284,285,286,287,288,289]],[[279,278,277,276,275,274,273,272,271,270],[260,261,262,263,264,265,266,267,268,269]],[[259,258,257,256,255,254,253,252,251,250],[240,241,242,243,244,245,246,247,248,249]],[[239,238,237,236,235,234,233,232,231,230],[220,221,222,223,224,225,226,227,228,229]],[[219,218,217,216,215,214,213,212,211,210],[200,201,202,203,204,205,206,207,208,209]]];
-  for(var i=0;i<p2.length;i++){h+='<div class="row-group">'+mkRow('stall',p2[i][0])+mkRow('stall',p2[i][1])+'</div>';if(i<p2.length-1)h+='<div class="aisle">\u2014 19\u20320\u2033 \u2014</div>';}
+  for(var i=0;i<p2.length;i++){h+='<div class="row-group">'+mkRow('stall',p2[i][0])+mkRow('stall',p2[i][1])+'</div>';if(i<p2.length-1)h+='<div class="aisle">&nbsp;</div>';}
   h+='</div></div></div>';
   // Bottom row inside frame: Wash Rack | section labels | Stall Office
   h+='<div class="lm-bottom-row"><div class="lm-bottom-box">Wash Rack</div><div class="lm-bottom-center">Stall #\u2019s 300\u2013429 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Stall #\u2019s 200\u2013299</div><div class="lm-bottom-box">Stall Office</div></div>';
