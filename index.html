@@ -91,7 +91,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .section-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--gldd); font-family:'JetBrains Mono',monospace; margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid var(--bd); }
 .row-group { margin-bottom:10px; }
 .stall-row { display:flex; gap:2px; margin-bottom:2px; }
-.aisle { height:20px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--txd); font-family:'JetBrains Mono',monospace; letter-spacing:0.05em; margin:2px 0; }
+.aisle { height:22px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; color:var(--gld); font-family:'JetBrains Mono',monospace; letter-spacing:0.05em; margin:3px 0; }
 .rv-row { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:4px; }
 .block-wrap { display:flex; gap:16px; flex-wrap:wrap; }
 
@@ -191,20 +191,22 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .err { padding:12px 16px; background:#2a1010; border:1px solid var(--red); border-radius:var(--radius); color:#c06060; font-size:12px; margin:16px 0; }
 
 /* ── Landmark frame (wraps around grid, doesn't affect grid layout) ── */
-.lm-frame { position:relative; border:1px solid var(--bd); border-radius:6px; padding:42px 38px 12px; margin-bottom:12px; }
-.lm-frame-top { position:absolute; top:0; left:0; right:0; text-align:center; padding:10px 0; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; color:var(--txd); letter-spacing:0.08em; text-transform:uppercase; border-bottom:1px solid var(--bd); background:var(--sf); border-radius:6px 6px 0 0; }
-.lm-frame-top span { color:var(--gld); margin:0 6px; }
-.lm-frame-left { position:absolute; left:0; top:42px; bottom:0; width:36px; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:var(--txd); letter-spacing:0.1em; text-transform:uppercase; border-right:1px solid var(--bd); background:var(--sf); border-radius:0 0 0 6px; }
-.lm-frame-right { position:absolute; right:0; top:42px; bottom:0; width:36px; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--txd); letter-spacing:0.08em; text-transform:uppercase; border-left:1px solid var(--bd); background:var(--sf); border-radius:0 0 6px 0; }
-.lm-private { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--txd); border:1px solid var(--bd); border-radius:3px; padding:8px 12px; display:inline-block; margin:6px 0; line-height:1.4; background:var(--sf); }
-.lm-bottom-row { display:flex; justify-content:space-between; align-items:flex-start; padding:10px 0 0; margin-top:10px; border-top:1px solid var(--bd); gap:8px; flex-wrap:wrap; }
-.lm-bottom-box { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; color:var(--txd); border:1px solid var(--bd); border-radius:3px; padding:6px 12px; background:var(--sf); }
-.lm-bottom-center { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--txd); text-align:center; flex:1; padding-top:6px; }
-.lm-footer { text-align:center; padding:14px 0 6px; margin-top:10px; border-top:1px solid var(--bd); }
-.lm-footer-line { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--txd); margin-bottom:6px; letter-spacing:0.04em; }
+.lm-frame { position:relative; border:1px solid var(--bd); border-radius:6px; padding:44px 40px 12px; margin-bottom:12px; }
+.lm-frame-top { position:absolute; top:0; left:0; right:0; text-align:center; padding:11px 0; font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700; color:var(--gldl); letter-spacing:0.1em; text-transform:uppercase; border-bottom:1px solid var(--bd); background:var(--sf); border-radius:6px 6px 0 0; }
+.lm-frame-top span { color:var(--gld); margin:0 8px; }
+.lm-frame-left { position:absolute; left:0; top:44px; bottom:0; width:38px; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--gldl); letter-spacing:0.12em; text-transform:uppercase; border-right:1px solid var(--bd); background:var(--sf); border-radius:0 0 0 6px; }
+.lm-frame-right { position:absolute; right:0; top:44px; bottom:0; width:38px; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--gldl); letter-spacing:0.1em; text-transform:uppercase; border-left:1px solid var(--bd); background:var(--sf); border-radius:0 0 6px 0; }
+.lm-private { position:absolute; left:42px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; color:var(--gldl); border:1px solid var(--bd); border-radius:3px; padding:8px 12px; line-height:1.4; background:var(--sf); z-index:5; }
+.lm-center-aisle { display:flex; flex-direction:column; justify-content:center; align-items:center; min-width:70px; padding:0 6px; gap:4px; }
+.lm-center-aisle-label { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--gld); white-space:nowrap; text-align:center; padding:4px 0; }
+.lm-bottom-row { display:flex; justify-content:space-between; align-items:flex-start; padding:12px 0 0; margin-top:12px; border-top:1px solid var(--bd); gap:8px; flex-wrap:wrap; }
+.lm-bottom-box { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; color:var(--gldl); border:1px solid var(--bd); border-radius:3px; padding:7px 14px; background:var(--sf); }
+.lm-bottom-center { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; color:var(--gldl); text-align:center; flex:1; padding-top:7px; }
+.lm-footer { text-align:center; padding:16px 0 8px; margin-top:12px; border-top:1px solid var(--bd); }
+.lm-footer-line { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; color:var(--gldl); margin-bottom:8px; letter-spacing:0.04em; }
 .lm-footer-line span { color:var(--gld); }
-.lm-footer-main { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--txd); margin-bottom:4px; letter-spacing:0.12em; }
-.lm-footer-sub { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--txd); line-height:1.6; }
+.lm-footer-main { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:var(--gldl); margin-bottom:6px; letter-spacing:0.14em; }
+.lm-footer-sub { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gldl); line-height:1.6; }
 
 /* ── Layout toggle (feature flag: SHOW_LAYOUT_TOGGLE) ────── */
 .layout-toggle-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; margin-bottom:14px; background:var(--sf3); border:1px solid var(--bd); border-radius:var(--radius); color:var(--txd); font-size:11px; font-family:'JetBrains Mono',monospace; cursor:pointer; transition:border-color 0.15s, color 0.15s, background 0.15s; }
@@ -496,33 +498,42 @@ function buildAreaMap(area){var fn=MAP_BUILDERS[area.id];if(!fn){document.getEle
 var MAP_BUILDERS={
 'barn-b':function(){
   var h='';
-  // ── Frame with positioned landmarks ──
   h+='<div class="lm-frame">';
-  // Top bar: Arena B
   h+='<div class="lm-frame-top"><span>\u2191</span> ARENA B <span>\u2191</span></div>';
-  // Left edge: Cattle Crossing
   h+='<div class="lm-frame-left">Cattle Crossing</div>';
-  // Right edge: Open Day Parking / Barn C
   h+='<div class="lm-frame-right">Open Day Parking \u00b7 Barn C Stalls & RVs \u2192</div>';
-  // ── Grid content (identical to original, untouched) ──
-  h+='<div class="barn-wrap"><div class="barn-section"><div class="section-label" id="sec300label">Stalls 300\u2013429</div><div role="grid" aria-labelledby="sec300label">';
+  // Private Barn — absolutely positioned, won't affect grid flow
+  h+='<div class="lm-private" style="top:220px;">Private Barn<br>Not for Use</div>';
+  // ── Grid: 300s | center aisle | 200s ──
+  h+='<div class="barn-wrap">';
+  // 300s section
+  h+='<div class="barn-section"><div class="section-label" id="sec300label">Stalls 300\u2013429</div><div role="grid" aria-labelledby="sec300label">';
   var p3=[[[417,418,419,420,421,422,423,424,425,426,427,428,429],[416,415,414,413,412,411,410,409,408,407,406,405,404]],[[391,392,393,394,395,396,397,398,399,400,401,402,403],[390,389,388,387,386,385,384,383,382,381,380,379,378]],[[365,366,367,368,369,370,371,372,373,374,375,376,377],[364,363,362,361,360,359,358,357,356,355,354,353,352]],[[339,340,341,342,343,344,345,346,347,348,349,350,351],[338,337,336,335,334,333,332,331,330,329,328,327,326]],[[313,314,315,316,317,318,319,320,321,322,323,324,325],[312,311,310,309,308,307,306,305,304,303,302,301,300]]];
   for(var i=0;i<p3.length;i++){
     h+='<div class="row-group">'+mkRow('stall',p3[i][0])+mkRow('stall',p3[i][1])+'</div>';
     if(i<p3.length-1)h+='<div class="aisle">\u2014 10\u20325\u2033 \u2014</div>';
-    if(i===1)h+='<div class="lm-private">Private Barn<br>Not for Use</div>';
   }
-  h+='</div></div><div style="display:flex;flex-direction:column;justify-content:space-around;align-items:center;padding:0 4px;min-width:50px;"><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div><div class="aisle" style="writing-mode:horizontal-tb;">19\u20320\u2033</div></div><div class="barn-section"><div class="section-label" id="sec200label">Stalls 200\u2013299</div><div role="grid" aria-labelledby="sec200label">';
+  h+='</div></div>';
+  // Center aisle column with ← 19'0" → labels
+  h+='<div class="lm-center-aisle">';
+  for(var i=0;i<5;i++)h+='<div class="lm-center-aisle-label">\u2190 19\u20320\u2033 \u2192</div>';
+  h+='</div>';
+  // 200s section
+  h+='<div class="barn-section"><div class="section-label" id="sec200label">Stalls 200\u2013299</div><div role="grid" aria-labelledby="sec200label">';
   var p2=[[[299,298,297,296,295,294,293,292,291,290],[280,281,282,283,284,285,286,287,288,289]],[[279,278,277,276,275,274,273,272,271,270],[260,261,262,263,264,265,266,267,268,269]],[[259,258,257,256,255,254,253,252,251,250],[240,241,242,243,244,245,246,247,248,249]],[[239,238,237,236,235,234,233,232,231,230],[220,221,222,223,224,225,226,227,228,229]],[[219,218,217,216,215,214,213,212,211,210],[200,201,202,203,204,205,206,207,208,209]]];
-  for(var i=0;i<p2.length;i++){h+='<div class="row-group">'+mkRow('stall',p2[i][0])+mkRow('stall',p2[i][1])+'</div>';if(i<p2.length-1)h+='<div class="aisle">&nbsp;</div>';}
-  h+='</div></div></div>';
-  // Bottom row inside frame: Wash Rack | section labels | Stall Office
+  for(var i=0;i<p2.length;i++){
+    h+='<div class="row-group">'+mkRow('stall',p2[i][0])+mkRow('stall',p2[i][1])+'</div>';
+    if(i<p2.length-1)h+='<div class="aisle">\u2014 10\u20325\u2033 \u2014</div>';
+  }
+  h+='</div></div>';
+  h+='</div>';
+  // Bottom row: Wash Rack | section labels | Stall Office
   h+='<div class="lm-bottom-row"><div class="lm-bottom-box">Wash Rack</div><div class="lm-bottom-center">Stall #\u2019s 300\u2013429 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Stall #\u2019s 200\u2013299</div><div class="lm-bottom-box">Stall Office</div></div>';
   h+='</div>';
-  // ── VIP RVs (outside frame, same as before) ──
+  // VIP RVs
   h+='<div style="margin-top:18px;border-top:1px solid var(--bd);padding-top:14px;"><div class="section-label" id="secBBrv">Barn B VIP RVs 251\u2013260</div>';
   h+=mkRvRow([251,252,253,254,255,256,257,258,259,260])+'</div>';
-  // ── Footer: Day Parking, Arena A, Alamo ──
+  // Footer
   h+='<div class="lm-footer">';
   h+='<div class="lm-footer-line"><span>\u2190</span> &nbsp;Day Parking Lot &nbsp;\u00b7&nbsp; RV\u2019s & Stalls &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Main Drive Entrance&nbsp; <span>\u2192</span></div>';
   h+='<div class="lm-footer-line"><span>\u2193</span></div>';
