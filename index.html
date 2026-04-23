@@ -86,11 +86,10 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 @keyframes spin { to { transform:rotate(360deg); } }
 .map-loading p { font-size:13px; color:var(--txd); }
 
-.barn-wrap { display:flex; gap:0; flex-wrap:wrap; }
+.barn-wrap { display:flex; gap:50px; flex-wrap:wrap; }
 .barn-section { flex:1; min-width:280px; }
-.barn-section:first-child { padding-right:28px; border-right:1px dashed var(--bdl); margin-right:28px; }
 @media(max-width:900px){
-  .barn-section:first-child { padding-right:0; border-right:none; margin-right:0; padding-bottom:16px; border-bottom:1px dashed var(--bdl); margin-bottom:16px; }
+  .barn-wrap { gap:20px; }
 }
 .section-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--gldd); font-family:'JetBrains Mono',monospace; margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid var(--bd); }
 .row-group { margin-bottom:10px; }
