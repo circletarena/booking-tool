@@ -1,150 +1,68 @@
-# Barn B — Interactive Booking Map
+# Circle T Arena — Stall & RV Reservation Tool
 
-Circle T Arena · Stall reservation map with real-time availability via Checkfront API v3.
+Interactive booking tool for Circle T Arena with real-time availability, built on the Checkfront API.
 
-## What This Is
+## What It Does
 
-An interactive visual map of Barn B stalls (200–429 + VIP RVs) that shows real-time
-availability and lets customers reserve stalls directly. Built for deployment on Vercel.
+- **6 bookable areas** — Barn A, Barn B, Barn C, VIP Pool, Treeline, VIP Hill
+- **Real-time availability** — color-coded stall and RV maps pulled from live booking data
+- **Multi-item cart** — book multiple stalls/RV sites in a single checkout session
+- **Per-stall pricing** — click any available spot to see rates and total cost
+- **Property map overlay** — full facility map accessible from any screen
+- **Per-barn layout toggles** — detailed layout images for Barns A, B, and C
+- **Admin panel** — password-protected page at `/admin` to manage the maintenance hold window (LOOKBACK_DAYS)
+- **Mobile responsive** — touch-optimized with bottom-sheet info panel and pinch-to-zoom maps
 
-### How It Works
-
-```
-Browser (index.html)          Vercel Serverless           Checkfront v3 API
-┌─────────────────┐          ┌──────────────┐           ┌─────────────────┐
-│  fetch('/api/   │  ──────> │ api/         │  ───────> │ /api/3.0/item   │
-│   products')    │          │ products.js  │  <─────── │                 │
-│                 │  <────── │              │           │                 │
-│  fetch('/api/   │  ──────> │ api/         │  ───────> │ /api/3.0/item   │
-│   availability')│          │ availability │  <─────── │  ?start_date=   │
-│                 │  <────── │          .js │           │  &end_date=     │
-└─────────────────┘          └──────────────┘           └─────────────────┘
-   Same origin,               Runs server-side,          Authenticated or
-   no CORS issues             holds API credentials      Public API
-```
-
-### What Changed From the Apps Script Version
-
-| Before (Apps Script)                    | After (Vercel)                          |
-|-----------------------------------------|-----------------------------------------|
-| `google.script.run` calls              | `fetch('/api/...')` calls               |
-| 11+ chunked batch requests             | 1 bulk availability request             |
-| Served from Google's iframe sandbox    | Served from Vercel CDN (global edge)    |
-| No URL routing / deep links            | Full URL state (`?checkin=...&stall=`)  |
-| Apps Script execution quotas           | No quota limits                         |
-| ~10-15s availability load              | ~1-3s availability load (estimated)     |
-
----
-
-## Setup
-
-### 1. Environment Variables
-
-In Vercel Dashboard → your project → Settings → Environment Variables, add:
-
-| Variable               | Value                              | Required? |
-|------------------------|------------------------------------|-----------|
-| `CF_SUBDOMAIN`         | `circle-t-arena`                   | Yes       |
-| `CF_DOMAIN`            | `manage.na1.bookingplatform.app`   | Yes       |
-| `CF_API_KEY`           | (from Config sheet B6)             | If Public API is off |
-| `CF_API_SECRET`        | (from Config sheet B7)             | If Public API is off |
-| `CF_BARN_B_CATEGORIES` | `3742,3752`                        | Optional (default in code) |
-
-> **Once Circle T enables the Public API** (Manage > Developer > API toggle),
-> you can remove `CF_API_KEY` and `CF_API_SECRET`. The serverless functions
-> will make unauthenticated requests, which is simpler and just as capable
-> for the customer-facing availability data.
-
-### 2. Deploy
-
-Push this repo to GitHub. Vercel auto-deploys on every push.
-
-```bash
-# First time — from inside this project folder:
-git init
-git add .
-git commit -m "Initial commit — Barn B booking map"
-git branch -M main
-git remote add origin https://github.com/austnwelch/circle-t-barn-b.git
-git push -u origin main
-```
-
-Then go to Vercel → New Project → Import from GitHub → select this repo.
-
-### 3. Verify
-
-- Visit the deployed URL
-- Check that stall map loads
-- Set dates and verify availability colors appear
-- Click a stall and check the detail panel
-- Test "Reserve This Stall" button
-
----
-
-## Project Structure
+## How It Works
 
 ```
-circle-t-barn-b/
-├── index.html              Static frontend (served at /)
-├── api/
-│   ├── products.js         GET /api/products — fetch stall catalog
-│   └── availability.js     GET /api/availability — check availability + pricing
-├── package.json
-├── vercel.json             Vercel config (empty = auto-detect)
-├── .env.example            Environment variable template
-├── .gitignore
-└── README.md
+Browser (index.html)          Vercel Serverless            Checkfront API
+─────────────────────         ─────────────────            ──────────────
+fetch('/api/bookings')  ───>  api/bookings.js      ───>   /api/4.0/booking
+fetch('/api/products')  ───>  api/products.js      ───>   /api/4.0/item
+fetch('/api/availability')──> api/availability.js  ───>   /api/3.0/item (rated)
+fetch('/api/closures')  ───>  api/closures.js      ───>   /api/4.0/closure
 ```
 
----
+The browser makes requests to same-origin `/api/` endpoints. Vercel serverless functions proxy these to the Checkfront API with authentication, keeping API credentials server-side.
 
-## API Routes
+## File Structure
 
-### `GET /api/products`
+```
+index.html              Main application (single-page, all areas)
+api/
+  bookings.js           v4 bookings endpoint — returns booked stall/RV map
+  products.js           v4 items endpoint — returns products by category
+  availability.js       v3 rated availability — per-stall pricing + SLIP token
+  closures.js           v4 closures endpoint — maintenance holds
+  admin.js              Admin panel API (read/update LOOKBACK_DAYS, trigger redeploy)
+  admin-page.js         Serves the admin panel HTML
+barn-b/                 Legacy subfolder (Barn B layout assets)
+Circle-t-logo.webp      Site logo
+barn-a-layout.png       Barn A layout image (toggle)
+barn-b-layout.png       Barn B layout image (toggle)
+barn-c-layout.png       Barn C layout image (toggle)
+property-map.png        Full property map (modal overlay)
+```
 
-Fetches the product catalog for map building.
+## Environment Variables
 
-| Param        | Description                          |
-|-------------|--------------------------------------|
-| `categories` | Comma-separated Checkfront category IDs |
+| Variable | Purpose |
+|---|---|
+| `CF_API_KEY` | Checkfront API key (Token auth) |
+| `CF_API_SECRET` | Checkfront API secret |
+| `CF_DOMAIN` | Checkfront host domain |
+| `CF_SUBDOMAIN` | Checkfront account subdomain |
+| `LOOKBACK_DAYS` | Maintenance hold window (days) |
+| `ADMIN_PASSPHRASE` | Password for the /admin panel |
+| `VERCEL_TOKEN` | Vercel API token (for admin panel redeploys) |
+| `VERCEL_PROJECT_ID` | Vercel project ID (for admin panel redeploys) |
+| `DEPLOY_HOOK_URL` | Vercel deploy hook URL (triggers redeploy on config change) |
 
-Returns: `{ products: [{ id, name, sku }] }`
+## Deployment
 
-### `GET /api/availability`
+Hosted on Vercel. Pushes to `main` auto-deploy via GitHub integration.
 
-Fetches rated availability with pricing and booking SLIPs.
+## Support
 
-**Bulk mode** (all stalls at once):
-
-| Param        | Description                          |
-|-------------|--------------------------------------|
-| `categories` | Comma-separated category IDs         |
-| `start`      | Start date (YYYYMMDD)                |
-| `end`        | End date (YYYYMMDD)                  |
-
-Returns: `{ results: [{ itemId, available, slip, priceTitle, priceTotal }] }`
-
-**Single item mode**:
-
-| Param      | Description            |
-|-----------|------------------------|
-| `item_id`  | Checkfront item ID     |
-| `start`    | Start date (YYYYMMDD)  |
-| `end`      | End date (YYYYMMDD)    |
-
-Returns: `{ itemId, available, slip, priceTitle, priceTotal }`
-
----
-
-## Notes
-
-- **v3 API field mapping**: The `normalizeItem()` function in `api/availability.js`
-  maps v3 response fields to the format the frontend expects. You may need to adjust
-  field names after testing against the real API. Run a test query via the Checkfront
-  Developer Console (Manage > Developer > Console) to see the actual response structure.
-
-- **Widget**: The Checkfront booking widget (`CHECKFRONT.Widget`) loads from their CDN
-  and handles payment/form processing. The map just pre-selects the item and passes the SLIP.
-
-- **Fallback**: If the API or map fails, a banner appears linking to the standard
-  booking page so customers can still transact.
+For questions about this tool, contact Austin Welch.
