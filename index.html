@@ -141,6 +141,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .sc.unavailable { background:var(--redd); border-color:var(--red); color:var(--redl); cursor:default; opacity:0.55; }
 .sc.selected { transform:scale(1.15); z-index:10; box-shadow:0 0 0 2px var(--gld),0 4px 14px rgba(0,0,0,0.6); border-color:var(--gld) !important; }
 .sc.in-cart { box-shadow:0 0 0 2px var(--gldl); border-color:var(--gldl) !important; }
+.sc.turnout-cell { border-style:dashed; }
 .rc { width:40px; height:28px; font-size:9px; }
 
 /* Info panel */
@@ -540,9 +541,11 @@ async function fetchHubAvailability(start,end){
       var products=pd.products||[],total=products.length,unavailCount=0;
       for(var i=0;i<products.length;i++){
         var p=products[i],name=p.name||'';
+        var isTurnout=/turn\s*out/i.test(name);
         var sm=name.match(/stall\s+(\d+)/i),rm=name.match(/rv\s+(\d+)/i)||name.match(/rv(\d+)/i);
         var key=null;
-        if(sm)key='stall_'+parseInt(sm[1]);
+        if(isTurnout&&sm)key='stall_to_'+parseInt(sm[1]);
+        else if(sm)key='stall_'+parseInt(sm[1]);
         else if(rm)key='rv_'+parseInt(rm[1]);
         var isBooked=key&&bookedKeys.has(key);
         var isClosed=allClosedIds.has(Number(p.id));
@@ -591,8 +594,10 @@ async function loadAreaProducts(area){
     var data=await resp.json();if(data.error)throw new Error(data.error);
     var products=data.products||[];
     for(var i=0;i<products.length;i++){var p=products[i],name=p.name||'';
+      var isTurnout=/turn\s*out/i.test(name);
       var sm=name.match(/stall\s+(\d+)/i),rm=name.match(/rv\s+(\d+)/i)||name.match(/rv(\d+)/i);
-      if(sm)productMap['s_'+parseInt(sm[1])]={itemId:p.id,name:name};
+      if(isTurnout&&sm)productMap['to_'+parseInt(sm[1])]={itemId:p.id,name:name};
+      else if(sm)productMap['s_'+parseInt(sm[1])]={itemId:p.id,name:name};
       else if(rm)productMap['r_'+parseInt(rm[1])]={itemId:p.id,name:name};
     }
     buildAreaMap(area);document.getElementById('mapLoading').style.display='none';mapReady=true;
@@ -603,7 +608,14 @@ async function loadAreaProducts(area){
 }
 
 // ── Cell Builders ───────────────────────────────────────────
-function mkCell(type,num){var key=(type==='stall'?'s_':'r_')+num,prod=productMap[key],has=!!prod,label=(type==='rv'?'RV Site ':'Stall ')+num;return '<div class="sc'+(type==='rv'?' rc':'')+(has?'':' no-product')+'" data-'+(type==='rv'?'rv':'stall')+'="'+num+'" data-type="'+type+'" role="gridcell" tabindex="'+(has?'0':'-1')+'" aria-label="'+label+'">'+num+'</div>';}
+function mkCell(type,num){
+  var key, dataAttr, labelPrefix, extraClass='';
+  if(type==='rv'){key='r_'+num;dataAttr='data-rv';labelPrefix='RV Site ';extraClass=' rc';}
+  else if(type==='turnout'){key='to_'+num;dataAttr='data-turnout';labelPrefix='Turn Out ';extraClass=' turnout-cell';}
+  else{key='s_'+num;dataAttr='data-stall';labelPrefix='Stall ';}
+  var prod=productMap[key],has=!!prod,label=labelPrefix+num;
+  return '<div class="sc'+extraClass+(has?'':' no-product')+'" '+dataAttr+'="'+num+'" data-type="'+type+'" role="gridcell" tabindex="'+(has?'0':'-1')+'" aria-label="'+label+'">'+num+'</div>';
+}
 function mkRow(type,nums){var h='<div class="stall-row" role="row">';for(var i=0;i<nums.length;i++){if(nums[i]==='|')h+='</div><div class="stall-row" role="row">';else h+=mkCell(type,nums[i]);}return h+'</div>';}
 function mkRvRow(nums){var h='<div class="rv-row" role="row">';for(var i=0;i<nums.length;i++){if(nums[i]==='|')h+='<div style="width:10px"></div>';else h+=mkCell('rv',nums[i]);}return h+'</div>';}
 
@@ -629,7 +641,7 @@ var MAP_BUILDERS={
   [30,29,28,27,26,25,24,23,22,21].forEach(function(n){h+=mkRow('stall',[n]);});
   h+='</div><div>';
   [[11,10],[12,9],[13,8],[14,7],[15,6],[16,5],[17,4],[18,3],[19,2],[20,1]].forEach(function(p){h+=mkRow('stall',p);});
-  h+='</div></div></div><div style="margin-top:14px;border-top:1px solid var(--bd);padding-top:10px;"><div class="section-label" id="secBAto">Turn Out Stalls 1\u20137</div><div role="grid" aria-labelledby="secBAto">'+mkRow('stall',[1,2,3,4,5,6,7])+'</div></div>';return h;
+  h+='</div></div></div><div style="margin-top:14px;border-top:1px solid var(--bd);padding-top:10px;"><div class="section-label" id="secBAto">Turn Out Stalls 1\u20137</div><div role="grid" aria-labelledby="secBAto">'+mkRow('turnout',[1,2,3,4,5,6,7])+'</div></div>';return h;
 },
 'barn-c':function(){
   var h='<div class="section-label" id="secCvr1">VIP RVs 520\u2013539</div><div role="grid" aria-labelledby="secCvr1">'+mkRvRow([520,521,522,523,524,525,'|',526,527,528,529,530,531,'|',532,533,534,535,536,537,538,539])+'</div>';
@@ -677,12 +689,17 @@ async function runBookingsCheck(start,end){
     bookedMap=bookData.booked||{};
     closedSet=new Set((closureData.closedProductIds||[]).map(function(id){return Number(id);}));
     document.querySelectorAll('.sc:not(.no-product)').forEach(function(c){
-      c.classList.remove('checking');var type=c.dataset.type,num=type==='rv'?c.dataset.rv:c.dataset.stall;
-      var key=type==='rv'?'rv_'+num:'stall_'+num;
-      var prodKey=(type==='rv'?'r_':'s_')+num,prod=productMap[prodKey];
+      c.classList.remove('checking');
+      var type=c.dataset.type;
+      var num=type==='rv'?c.dataset.rv:(type==='turnout'?c.dataset.turnout:c.dataset.stall);
+      var key, prodKey, labelPrefix;
+      if(type==='rv'){key='rv_'+num;prodKey='r_'+num;labelPrefix='RV Site ';}
+      else if(type==='turnout'){key='stall_to_'+num;prodKey='to_'+num;labelPrefix='Turn Out ';}
+      else{key='stall_'+num;prodKey='s_'+num;labelPrefix='Stall ';}
+      var prod=productMap[prodKey];
       var isClosed=prod&&closedSet.has(Number(prod.itemId));
-      if(bookedMap[key]||isClosed){c.classList.add('unavailable');c.setAttribute('aria-label',(type==='rv'?'RV Site ':'Stall ')+num+', '+(isClosed?'closed':'booked'));}
-      else{c.classList.add('available');c.setAttribute('aria-label',(type==='rv'?'RV Site ':'Stall ')+num+', available');}
+      if(bookedMap[key]||isClosed){c.classList.add('unavailable');c.setAttribute('aria-label',labelPrefix+num+', '+(isClosed?'closed':'booked'));}
+      else{c.classList.add('available');c.setAttribute('aria-label',labelPrefix+num+', available');}
     });
     setProgressLabel('\u2713 Availability current',true);setProgressBar(100);startStaleTimer();
   }catch(err){if(myRun!==batchRunId)return;document.querySelectorAll('.sc.checking').forEach(function(c){c.classList.remove('checking');});setProgressLabel('Could not check availability',false);showFallback();}
@@ -707,8 +724,11 @@ function handleCellSelect(cell){
   if(cell.classList.contains('no-product'))return;if(cell.classList.contains('unavailable')){clearSelection();return;}
   var d=getDates();if(!d.start||!d.end||nightsBetween(d.start,d.end)<=0){setProgressLabel('\u26a0 Select valid dates first',false);return;}
   if(selectedCell)selectedCell.classList.remove('selected');selectedCell=cell;cell.classList.add('selected');
-  var type=cell.dataset.type,number=parseInt(type==='rv'?cell.dataset.rv:cell.dataset.stall),key=(type==='rv'?'r_':'s_')+number,prod=productMap[key];if(!prod)return;
-  selectedLabel=type==='rv'?'RV Site '+number:'Stall '+number;
+  var type=cell.dataset.type;
+  var number=parseInt(type==='rv'?cell.dataset.rv:(type==='turnout'?cell.dataset.turnout:cell.dataset.stall));
+  var key=(type==='rv'?'r_':(type==='turnout'?'to_':'s_'))+number;
+  var prod=productMap[key];if(!prod)return;
+  selectedLabel=type==='rv'?'RV Site '+number:(type==='turnout'?'Turn Out '+number:'Stall '+number);
   showInfoPanel(selectedLabel);fetchStallDetail(prod.itemId,selectedLabel,cell,d.start,d.end);updateUrl();
   if(isTouch)document.getElementById('infoPanel').classList.add('vis');
 }
@@ -734,22 +754,41 @@ function renderStallDetail(result,itemId,label,cell,start,end){
   document.getElementById('iAvailDetails').style.display='block';
   var nights=nightsBetween(start,end);document.getElementById('iCheckin').textContent=fmtDisplay(start);document.getElementById('iCheckout').textContent=fmtDisplay(end);document.getElementById('iNights').textContent=nights+(nights===1?' night':' nights');
   if(isAvail){document.getElementById('iPrice').textContent=result.priceTitle||'\u2014';document.getElementById('iPriceUnit').textContent=result.priceUnit||'per night';document.getElementById('iPriceTotal').innerHTML=result.priceTotal?'Total: <strong>'+result.priceTotal+'</strong>':'';
-    var inCart=cart.some(function(c){return c.itemId===itemId;});var btn=document.getElementById('btnAddCart');btn.disabled=false;var isRv=selectedCell&&selectedCell.dataset.type==='rv';btn.textContent=isRv?'Book This RV Site':'Book This Stall';btn.onclick=function(){bookSelected();};}
+    var inCart=cart.some(function(c){return c.itemId===itemId;});var btn=document.getElementById('btnAddCart');btn.disabled=false;
+    var btnLabel='Book This Stall';
+    if(selectedCell){if(selectedCell.dataset.type==='rv')btnLabel='Book This RV Site';else if(selectedCell.dataset.type==='turnout')btnLabel='Book This Turn Out';}
+    btn.textContent=btnLabel;btn.onclick=function(){bookSelected();};}
   else{document.getElementById('iPrice').textContent='\u2014';document.getElementById('iPriceUnit').textContent='';document.getElementById('iPriceTotal').innerHTML='';document.getElementById('btnAddCart').disabled=true;document.getElementById('btnAddCart').textContent='Not Available';}
   updateCartUI();
 }
 
 // ── CART ─────────────────────────────────────────────────────
 function addToCart(){
-  if(!selectedCell||!selectedLabel)return;var type=selectedCell.dataset.type,number=parseInt(type==='rv'?selectedCell.dataset.rv:selectedCell.dataset.stall),key=(type==='rv'?'r_':'s_')+number,prod=productMap[key];if(!prod)return;
+  if(!selectedCell||!selectedLabel)return;
+  var type=selectedCell.dataset.type;
+  var number=parseInt(type==='rv'?selectedCell.dataset.rv:(type==='turnout'?selectedCell.dataset.turnout:selectedCell.dataset.stall));
+  var key=(type==='rv'?'r_':(type==='turnout'?'to_':'s_'))+number;
+  var prod=productMap[key];if(!prod)return;
   var cached=availCache[prod.itemId];if(!cached||!cached.slip)return;if(cart.some(function(c){return c.itemId===prod.itemId;}))return;
   cart.push({itemId:prod.itemId,label:selectedLabel,type:type,number:number,slip:cached.slip});selectedCell.classList.add('in-cart');
   var btn=document.getElementById('btnAddCart');btn.textContent='Remove from Cart';btn.onclick=function(){removeFromCart(prod.itemId);};updateCartUI();
 }
 function removeFromCart(itemId){
   cart=cart.filter(function(c){return c.itemId!==itemId;});
-  document.querySelectorAll('.sc.in-cart').forEach(function(c){var t=c.dataset.type,n=parseInt(t==='rv'?c.dataset.rv:c.dataset.stall),k=(t==='rv'?'r_':'s_')+n,p=productMap[k];if(p&&!cart.some(function(ci){return ci.itemId===p.itemId;}))c.classList.remove('in-cart');});
-  if(selectedCell){var t=selectedCell.dataset.type,n=parseInt(t==='rv'?selectedCell.dataset.rv:selectedCell.dataset.stall),k=(t==='rv'?'r_':'s_')+n,p=productMap[k];if(p&&p.itemId===itemId){var btn=document.getElementById('btnAddCart');btn.textContent='Add to Cart';btn.onclick=function(){addToCart();};}}
+  document.querySelectorAll('.sc.in-cart').forEach(function(c){
+    var t=c.dataset.type;
+    var n=parseInt(t==='rv'?c.dataset.rv:(t==='turnout'?c.dataset.turnout:c.dataset.stall));
+    var k=(t==='rv'?'r_':(t==='turnout'?'to_':'s_'))+n;
+    var p=productMap[k];
+    if(p&&!cart.some(function(ci){return ci.itemId===p.itemId;}))c.classList.remove('in-cart');
+  });
+  if(selectedCell){
+    var t=selectedCell.dataset.type;
+    var n=parseInt(t==='rv'?selectedCell.dataset.rv:(t==='turnout'?selectedCell.dataset.turnout:selectedCell.dataset.stall));
+    var k=(t==='rv'?'r_':(t==='turnout'?'to_':'s_'))+n;
+    var p=productMap[k];
+    if(p&&p.itemId===itemId){var btn=document.getElementById('btnAddCart');btn.textContent='Add to Cart';btn.onclick=function(){addToCart();};}
+  }
   updateCartUI();
 }
 function updateCartUI(){
@@ -838,7 +877,10 @@ window.addEventListener('message',function(e){
 // ── BOOKING ─────────────────────────────────────────────────
 function bookSelected(){
   if(!selectedCell||!selectedLabel)return;
-  var type=selectedCell.dataset.type,number=parseInt(type==='rv'?selectedCell.dataset.rv:selectedCell.dataset.stall),key=(type==='rv'?'r_':'s_')+number,prod=productMap[key];if(!prod)return;
+  var type=selectedCell.dataset.type;
+  var number=parseInt(type==='rv'?selectedCell.dataset.rv:(type==='turnout'?selectedCell.dataset.turnout:selectedCell.dataset.stall));
+  var key=(type==='rv'?'r_':(type==='turnout'?'to_':'s_'))+number;
+  var prod=productMap[key];if(!prod)return;
   var cached=availCache[prod.itemId];if(!cached||!cached.slip)return;
   cart=[{itemId:prod.itemId,label:selectedLabel,type:type,number:number,slip:cached.slip}];
   launchBooking();
