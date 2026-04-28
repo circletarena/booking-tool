@@ -141,6 +141,7 @@ module.exports = async function handler(req, res) {
       const items = summary.split(', ').map(s => s.trim()).filter(s => s);
 
       const stallNumbers = [];
+      const turnoutNumbers = [];
       const rvNumbers = [];
 
       for (const item of items) {
@@ -152,6 +153,10 @@ module.exports = async function handler(req, res) {
           const num = parseInt(numMatch[1]);
           if (/\brv\b/i.test(item)) {
             rvNumbers.push(num);
+          } else if (/turn\s*out/i.test(item)) {
+            // Turn out stalls are distinct products (e.g. "Barn A - Turn out - Stall 1")
+            // and must be keyed separately from regular stalls of the same number
+            turnoutNumbers.push(num);
           } else if (/stall/i.test(item)) {
             stallNumbers.push(num);
           }
@@ -175,6 +180,11 @@ module.exports = async function handler(req, res) {
         // Don't overwrite an active booking with a maintenance hold
         if (booked['stall_' + n] && !booked['stall_' + n].maintenance) continue;
         booked['stall_' + n] = info;
+      }
+      for (const n of turnoutNumbers) {
+        // Turn out stalls are keyed as stall_to_N to distinguish from regular stall_N
+        if (booked['stall_to_' + n] && !booked['stall_to_' + n].maintenance) continue;
+        booked['stall_to_' + n] = info;
       }
       for (const n of rvNumbers) {
         if (booked['rv_' + n] && !booked['rv_' + n].maintenance) continue;
