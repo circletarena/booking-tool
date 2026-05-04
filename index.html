@@ -82,8 +82,14 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 
 /* Hub */
 .hub { padding:20px; max-width:1100px; margin:0 auto; }
-.hub-title { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; margin-bottom:6px; }
+.hub-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; }
+.hub-title { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; margin-bottom:0; }
+.hub-title-row .btn-propmap { flex-shrink:0; }
 .hub-subtitle { font-size:13px; color:var(--txd); margin-bottom:20px; }
+(max-width:480px){
+  .hub-title-row { align-items:flex-start; }
+  .hub-title { font-size:22px; }
+}
 .hub-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:14px; }
 .area-card { background:var(--sf); border:1px solid var(--bd); border-radius:8px; padding:18px 20px; cursor:pointer; transition:border-color 0.2s, transform 0.15s, box-shadow 0.2s; position:relative; overflow:hidden; }
 .area-card:hover { border-color:var(--gld); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
@@ -181,8 +187,8 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .btn-clear { width:100%; padding:9px; background:transparent; color:var(--txd); border:1px solid var(--bd); border-radius:var(--radius); font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; margin-top:8px; transition:border-color 0.15s,color 0.15s; }
 .btn-clear:hover { border-color:var(--bdl); color:var(--tx); }
 
-.cart-block { padding:14px 18px; border-bottom:1px solid var(--bd); display:none; }
-.cart-block.vis { display:block; }
+.cart-block { display:none !important; padding:14px 18px; border-bottom:1px solid var(--bd); }
+.cart-block.vis { display:none !important; }
 .cart-title { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--txd); font-family:'JetBrains Mono',monospace; margin-bottom:8px; }
 .cart-item { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--bd); font-size:13px; }
 .cart-item:last-child { border-bottom:none; }
@@ -218,13 +224,54 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .lw.chk { background:var(--chk); border-color:var(--gld); }
 .lw.cart { background:var(--chk); border-color:var(--gldl); box-shadow:0 0 0 1px var(--gldl); }
 
+.mobile-cart-fab { display:none; }
+.mobile-cart-fab.vis { display:none; }
+.mobile-checkout-bar { display:none; position:fixed; left:0; right:0; bottom:0; z-index:1250; padding:10px 12px; padding-bottom:max(10px, env(safe-area-inset-bottom)); background:rgba(30,27,22,0.98); border-top:2px solid var(--gld); box-shadow:0 -8px 28px rgba(0,0,0,0.4); }
+.mobile-checkout-bar.vis { display:none; }
+.mobile-checkout-bar-inner { display:flex; align-items:center; justify-content:space-between; gap:10px; max-width:760px; margin:0 auto; }
+.mobile-checkout-bar-copy { min-width:0; }
+.mobile-checkout-bar-title { font-size:13px; font-weight:800; color:var(--grnl); display:flex; align-items:center; gap:7px; }
+.mobile-checkout-bar-title::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--grnl); flex-shrink:0; }
+.mobile-checkout-bar-sub { font-size:11px; color:var(--txd); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mobile-checkout-bar-btn { flex-shrink:0; padding:10px 14px; border-radius:999px; border:1px solid var(--gldl); background:var(--gld); color:var(--bg); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:900; cursor:pointer; }
+
+
 @media(max-width:900px){
   .info-panel { position:fixed; bottom:0; left:0; right:0; height:auto; max-height:65vh; border-top:2px solid var(--gld); transform:translateY(100%); transition:transform 0.25s ease-out; z-index:200; border-right:none; display:none; }
   .info-panel.vis { display:flex; transform:translateY(0); }
   .map-panel { border-right:none; padding-bottom:20px; }
   .main { grid-template-columns:1fr; }
   .hub-grid { grid-template-columns:1fr; }
+  .session-banner { display:none !important; }
+
+  /* Mobile checkout mode: give Checkfront the screen and keep the stall info drawer out of the way. */
+  body.widget-active { overflow:hidden; }
+  body.widget-active .info-panel { display:none !important; transform:translateY(100%) !important; pointer-events:none !important; }
+  body.widget-active .widget-section.vis { display:flex; flex-direction:column; position:fixed; inset:0; z-index:5000; padding:0; padding-top:max(12px, env(safe-area-inset-top)); padding-bottom:max(8px, env(safe-area-inset-bottom)); overflow:hidden; background:var(--sf2); border-top:none; }
+  body.widget-active .widget-header { flex-shrink:0; position:relative; z-index:3; background:var(--sf2); padding:10px 12px 12px; margin-bottom:0; align-items:flex-start; border-bottom:1px solid var(--bd); }
+  body.widget-active .widget-frame { flex:1; min-height:0; display:flex; flex-direction:column; overflow:auto; -webkit-overflow-scrolling:touch; border-radius:0; border-left:none; border-right:none; }
+  body.widget-active .session-banner { display:none !important; }
+  body.widget-active .mobile-cart-fab { display:none !important; }
+  body.widget-active .mobile-checkout-bar { display:none !important; }
+  body.widget-active .widget-wrap { flex:1; padding:8px; }
+  body.widget-active .widget-hint { font-size:14px; line-height:1.4; padding:12px 14px; flex-shrink:0; }
+  body.widget-active .widget-header h3 { font-size:21px; line-height:1.05; }
+  body.widget-active .widget-stall { font-size:13px; }
+  body.widget-active .btn-widget-back { font-size:15px; padding:10px 14px; }
+  body.widget-active .cart-block { display:none !important; }
+  body:not(.widget-active) .cart-block { display:none !important; }
+  .mobile-cart-fab.vis { display:none !important; }
+  .mobile-checkout-bar.vis { display:block; }
+  body.has-mobile-checkout-bar .map-panel { padding-bottom:92px; }
 }
+.flow-toast { display:none; position:fixed; left:16px; right:16px; bottom:max(18px, env(safe-area-inset-bottom)); z-index:7000; padding:13px 16px; background:var(--sf); border:1px solid var(--gld); border-radius:8px; color:var(--gldl); font-size:14px; font-weight:700; box-shadow:0 8px 26px rgba(0,0,0,0.35); text-align:center; }
+.flow-toast.vis { display:block; animation:toastIn 0.18s ease-out; }
+@keyframes toastIn { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
+.checkout-transition { display:none; position:fixed; inset:0; z-index:6500; background:rgba(19,17,16,0.82); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); align-items:center; justify-content:center; padding:24px; text-align:center; }
+.checkout-transition.vis { display:flex; }
+.checkout-transition-card { background:var(--sf); border:1px solid var(--gld); border-radius:10px; padding:20px 18px; max-width:340px; box-shadow:0 12px 32px rgba(0,0,0,0.45); }
+.checkout-transition-card h4 { font-family:'Playfair Display',serif; font-size:24px; margin-bottom:8px; color:var(--tx); }
+.checkout-transition-card p { color:var(--txd); font-size:15px; line-height:1.45; }
 .err { padding:12px 16px; background:#2a1010; border:1px solid var(--red); border-radius:var(--radius); color:#c06060; font-size:13px; margin:16px 0; }
 
 /* ── Landmark frame (wraps around grid, doesn't affect grid layout) ── */
@@ -272,6 +319,47 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .btn-session-checkout:hover { background:var(--gldl); }
 .btn-session-continue { background:var(--sf3); color:var(--gldl); border:1px solid var(--bd); }
 .btn-session-continue:hover { border-color:var(--gld); }
+
+
+/* ── Mobile preserved checkout dock: keep the live Checkfront iframe mounted, but collapse it to a small reopen tab. */
+.mobile-preserved-dock { display:none; }
+@media(max-width:900px){
+  .mobile-checkout-bar,
+  .mobile-checkout-bar.vis { display:none !important; }
+  body.has-mobile-checkout-bar .map-panel { padding-bottom:20px; }
+
+  body.widget-active { overflow:auto !important; }
+  body.widget-active .hdr,
+  body.widget-active .datebar,
+  body.widget-active .progress-wrap,
+  body.widget-active .fallback-banner,
+  body.widget-active .map-view,
+  body.widget-active .hub,
+  body.widget-active .legend,
+  body.widget-active .info-panel,
+  body.widget-active .session-banner,
+  body.widget-active .mobile-cart-fab,
+  body.widget-active .mobile-checkout-bar { display:none !important; }
+  body.widget-active .widget-section.vis:not(.widget-collapsed) { display:block !important; position:relative !important; inset:auto !important; z-index:5000; min-height:100vh; padding:0 !important; overflow:visible !important; background:var(--sf2); border-top:none; }
+  body.widget-active .widget-section.vis:not(.widget-collapsed) .widget-header { position:sticky; top:0; z-index:5; background:var(--sf2); padding:12px 14px; margin-bottom:0; align-items:flex-start; border-bottom:1px solid var(--bd); }
+  body.widget-active .widget-section.vis:not(.widget-collapsed) .widget-frame { display:block; overflow:visible; border-radius:0; border-left:none; border-right:none; border-bottom:none; }
+  body.widget-active .widget-section.vis:not(.widget-collapsed) .widget-wrap { padding:0; min-height:72vh; overflow:visible; }
+  body.widget-active .widget-section.vis:not(.widget-collapsed) .widget-hint { font-size:14px; line-height:1.4; padding:12px 14px; }
+  body.widget-active .widget-section.vis:not(.widget-collapsed) #CF_WIDGET_TARGET iframe { display:block !important; width:1px !important; min-width:100% !important; min-height:78vh; }
+
+  .widget-section.widget-collapsed { display:block !important; position:fixed !important; left:0; right:0; bottom:0; z-index:3500; padding:0 !important; border-top:2px solid var(--gld); background:var(--sf); box-shadow:0 -8px 28px rgba(0,0,0,0.42); }
+  .widget-section.widget-collapsed .mobile-preserved-dock { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:58px; padding:10px 14px; padding-bottom:max(10px, env(safe-area-inset-bottom)); background:var(--sf); color:var(--tx); border:0; font-family:'DM Sans',sans-serif; text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .widget-section.widget-collapsed .mobile-preserved-dock-main { display:flex; flex-direction:column; min-width:0; }
+  .widget-section.widget-collapsed .mobile-preserved-dock-title { font-size:13px; font-weight:800; color:var(--grnl); display:flex; align-items:center; gap:7px; }
+  .widget-section.widget-collapsed .mobile-preserved-dock-title::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--grnl); flex-shrink:0; }
+  .widget-section.widget-collapsed .mobile-preserved-dock-sub { margin-top:2px; font-size:11px; color:var(--txd); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .widget-section.widget-collapsed .mobile-preserved-dock-action { flex-shrink:0; padding:8px 12px; border-radius:999px; background:var(--gld); color:var(--bg); font-size:12px; font-weight:900; }
+  .widget-section.widget-collapsed .widget-header,
+  .widget-section.widget-collapsed .widget-frame { display:block !important; height:1px !important; max-height:1px !important; min-height:1px !important; overflow:hidden !important; opacity:0 !important; pointer-events:none !important; padding:0 !important; margin:0 !important; border:0 !important; }
+  .widget-section.widget-collapsed #CF_WIDGET_TARGET iframe { height:1px !important; min-height:1px !important; }
+  body.has-collapsed-checkout .map-panel { padding-bottom:88px; }
+}
+
 </style>
 </head>
 <body>
@@ -321,8 +409,17 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
     <span id="sessionBannerText">You have a booking in progress</span>
   </div>
   <div class="session-banner-actions">
-    <button class="btn-session btn-session-continue" onclick="sessionAddMore()">+ Add More</button>
     <button class="btn-session btn-session-checkout" onclick="sessionCheckout()">View Cart / Checkout</button>
+  </div>
+</div>
+
+<div class="mobile-checkout-bar" id="mobileCheckoutBar" role="region" aria-label="Booking in progress">
+  <div class="mobile-checkout-bar-inner">
+    <div class="mobile-checkout-bar-copy">
+      <div class="mobile-checkout-bar-title">Booking in progress</div>
+      <div class="mobile-checkout-bar-sub">Choose another spot below, or continue checkout.</div>
+    </div>
+    <button class="mobile-checkout-bar-btn" onclick="mobileContinueCheckout()">Continue checkout</button>
   </div>
 </div>
 
@@ -342,7 +439,13 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 
 <!-- HUB VIEW -->
 <div class="hub" id="hubView">
-  <div class="hub-title">Choose Your Area</div>
+  <div class="hub-title-row">
+    <div class="hub-title">Choose Your Area</div>
+    <button class="btn-propmap" onclick="openPropertyMap()" aria-label="View property map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span class="propmap-label">Property Map</span>
+    </button>
+  </div>
   <div class="hub-subtitle">Select dates above, then pick an area to view the interactive map and reserve.</div>
   <div class="hub-grid" id="hubGrid"></div>
 </div>
@@ -399,16 +502,28 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 </div>
 
 <div class="widget-section" id="widgetSection">
+  <button class="mobile-preserved-dock" id="mobilePreservedDock" onclick="expandPreservedCheckout()" type="button" aria-label="Reopen checkout">
+    <span class="mobile-preserved-dock-main"><span class="mobile-preserved-dock-title">Booking in progress</span><span class="mobile-preserved-dock-sub" id="mobilePreservedDockSub">Cart saved. Tap to reopen checkout.</span></span>
+    <span class="mobile-preserved-dock-action">Reopen</span>
+  </button>
   <div class="widget-header">
     <div><h3 id="widgetTitle">Complete Your Reservation</h3><div class="widget-stall" id="widgetStallLabel"></div></div>
-    <button class="btn-widget-back" onclick="closeWidget()">✕ Close</button>
+    <button class="btn-widget-back" onclick="hideWidgetForMap()">‹ Back to map</button>
   </div>
   <div class="widget-frame">
     <div class="widget-frame-header" id="widgetFrameHeader">Completing reservation...</div>
-    <div class="widget-hint" id="widgetHint">Click <strong>Book Now</strong> below to add this item to your cart. After confirming your dates, use <strong>+ Add to Booking</strong> to keep adding, or continue through the prompts to complete your reservation.</div>
+    <div class="widget-hint" id="widgetHint">Tap <strong>Book Now</strong> below to add this spot. After it is added, use <strong>+ Add to Booking</strong> to return to the map and choose another spot, or continue through checkout when finished.</div>
     <div class="widget-wrap"><div class="widget-loading" id="widgetMsg">Loading reservation form...</div><div id="CF_WIDGET_TARGET"></div></div>
   </div>
 </div>
+
+<div class="checkout-transition" id="checkoutTransition" aria-live="polite">
+  <div class="checkout-transition-card">
+    <h4>Cart saved</h4>
+    <p>Your booking is still active. Returning you to the map so you can choose another spot.</p>
+  </div>
+</div>
+<div class="flow-toast" id="flowToast" aria-live="polite"></div>
 
 <div class="legend">
   <div class="li"><div class="lw neu"></div> Not checked</div>
@@ -471,6 +586,53 @@ var widgetHeightHistory=[];      // track recent heights for transition detectio
 var lastWidgetHeight=0;
 var sessionItemCount=0;          // track items added this session
 
+// ── Droplet cart bridge guard ───────────────────────────────
+// The Checkfront droplet-cart feature exports cart state to the parent page so Safari/mobile
+// can restore it between product-specific droplets. During the + Add to Booking transition,
+// the droplet can briefly emit an empty cart. If we let that overwrite a valid cart, the next
+// droplet has nothing to restore. Keep the last non-empty CheckfrontCart unless we intentionally clear it.
+var cfLastNonEmptyCart=null;
+var cfLastNonEmptyAt=0;
+var cfSuppressEmptyCartUntil=0;
+var _nativeStorageSetItem=Storage.prototype.setItem;
+var _nativeStorageRemoveItem=Storage.prototype.removeItem;
+function cfIsCheckfrontCartKey(key){return String(key)==='CheckfrontCart';}
+function cfParseCartValue(value){try{var parsed=JSON.parse(value);return Array.isArray(parsed)?parsed:null;}catch(e){return null;}}
+function cfRememberCart(value){var parsed=cfParseCartValue(value);if(parsed&&parsed.length>0){cfLastNonEmptyCart=value;cfLastNonEmptyAt=Date.now();}}
+function cfSuppressTransientEmptyCart(ms){cfSuppressEmptyCartUntil=Math.max(cfSuppressEmptyCartUntil,Date.now()+(ms||6000));}
+function cfShouldSuppressEmptyCart(value){var parsed=cfParseCartValue(value);return parsed&&parsed.length===0&&!!cfLastNonEmptyCart&&Date.now()<cfSuppressEmptyCartUntil;}
+function cfRestoreSavedCart(){
+  var saved=cfLastNonEmptyCart;
+  if(!saved){
+    var fromSession=sessionStorage.getItem('CheckfrontCart');
+    var fromLocal=localStorage.getItem('CheckfrontCart');
+    if(cfParseCartValue(fromSession)&&cfParseCartValue(fromSession).length>0)saved=fromSession;
+    else if(cfParseCartValue(fromLocal)&&cfParseCartValue(fromLocal).length>0)saved=fromLocal;
+  }
+  if(saved&&cfParseCartValue(saved)&&cfParseCartValue(saved).length>0){
+    cfLastNonEmptyCart=saved;cfLastNonEmptyAt=Date.now();
+    _nativeStorageSetItem.call(localStorage,'CheckfrontCart',saved);
+    _nativeStorageSetItem.call(sessionStorage,'CheckfrontCart',saved);
+    return true;
+  }
+  return false;
+}
+function cfClearSavedCart(){cfLastNonEmptyCart=null;cfLastNonEmptyAt=0;cfSuppressEmptyCartUntil=0;try{_nativeStorageSetItem.call(localStorage,'CheckfrontCart','[]');_nativeStorageSetItem.call(sessionStorage,'CheckfrontCart','[]');}catch(e){}}
+function cfHandleIntentionalEmptyCart(){cfClearSavedCart();sessionActive=false;sessionItemCount=0;cart=[];updateCartUI();updateSessionBanner();}
+Storage.prototype.setItem=function(key,value){
+  if(cfIsCheckfrontCartKey(key)){
+    if(cfShouldSuppressEmptyCart(value)){_nativeStorageSetItem.call(this,key,cfLastNonEmptyCart);return;}
+    var parsed=cfParseCartValue(value);
+    if(parsed&&parsed.length===0&&cfLastNonEmptyCart){cfHandleIntentionalEmptyCart();return _nativeStorageSetItem.call(this,key,value);}
+    cfRememberCart(value);
+  }
+  return _nativeStorageSetItem.call(this,key,value);
+};
+Storage.prototype.removeItem=function(key){
+  if(cfIsCheckfrontCartKey(key)&&cfShouldSuppressEmptyCart('[]')){_nativeStorageSetItem.call(this,key,cfLastNonEmptyCart);return;}
+  if(cfIsCheckfrontCartKey(key))cfHandleIntentionalEmptyCart();
+  return _nativeStorageRemoveItem.call(this,key);
+};
 function today(){var d=new Date();d.setHours(0,0,0,0);return d;}
 function fmtInput(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fmtApi(v){return v.replace(/-/g,'');}
@@ -491,6 +653,7 @@ function onDateChange(){
   document.querySelectorAll('.sc').forEach(function(c){c.classList.remove('available','unavailable','checking','selected','in-cart');});
   clearInfoPanel();closeWidget();updateUrl();clearStaleTimer();
   // Reset session on date change
+  cfClearSavedCart();
   sessionActive=false;sessionItemCount=0;updateSessionBanner();
   var s=document.getElementById('startDate').value,e=document.getElementById('endDate').value;
   if(!s||!e||nightsBetween(s,e)<=0){setProgressLabel('Select dates to check availability',false);setProgressBar(0);renderHubCards();return;}
@@ -740,7 +903,7 @@ function showInfoPanel(label){
   document.getElementById('iAvailDetails').style.display='none';document.getElementById('btnAddCart').disabled=true;
 }
 function clearInfoPanel(){document.getElementById('infoEmpty').style.display='flex';document.getElementById('infoContent').classList.remove('vis');if(isTouch)document.getElementById('infoPanel').classList.remove('vis');selectedCell=null;selectedLabel=null;}
-function clearSelection(){if(selectedCell){selectedCell.classList.remove('selected');selectedCell=null;}selectedLabel=null;clearInfoPanel();closeWidget();updateUrl();}
+function clearSelection(){if(selectedCell){selectedCell.classList.remove('selected');selectedCell=null;}selectedLabel=null;clearInfoPanel();if(!(isTouch&&sessionActive&&document.getElementById('widgetSection').classList.contains('widget-collapsed'))){closeWidget();}updateUrl();}
 
 async function fetchStallDetail(itemId,label,cell,start,end){
   if(availCache[itemId]){renderStallDetail(availCache[itemId],itemId,label,cell,start,end);return;}
@@ -792,45 +955,173 @@ function removeFromCart(itemId){
   updateCartUI();
 }
 function updateCartUI(){
-  var block=document.getElementById('cartBlock'),items=document.getElementById('cartItems'),count=document.getElementById('cartCount');
-  if(cart.length===0){block.classList.remove('vis');return;}block.classList.add('vis');
-  items.innerHTML=cart.map(function(c){return '<div class="cart-item"><span class="ci-name">'+c.label+'</span><button class="ci-remove" onclick="removeFromCart('+c.itemId+')">✕</button></div>';}).join('');
-  var tc=0,all=true;cart.forEach(function(c){var ca=availCache[c.itemId];if(ca&&ca.priceTotal){var m=ca.priceTotal.match(/[\d,.]+/);if(m)tc+=parseFloat(m[0].replace(',',''));else all=false;}else all=false;});
-  var txt=cart.length+' spot'+(cart.length!==1?'s':'')+' selected';if(all&&tc>0)txt+=' \u00b7 Est. total: $'+tc.toFixed(2);count.textContent=txt;
+  // The Checkfront cart is the source of truth now. Keep the old in-app cart block hidden
+  // so it does not compete with the real checkout/cart UI.
+  var block=document.getElementById('cartBlock');
+  if(block)block.classList.remove('vis');
+}
+
+
+function showFlowToast(message,duration){
+  var t=document.getElementById('flowToast');
+  if(!t)return;
+  t.textContent=message;
+  t.classList.add('vis');
+  clearTimeout(showFlowToast._timer);
+  showFlowToast._timer=setTimeout(function(){t.classList.remove('vis');},duration||2600);
+}
+function showCheckoutTransitionThenReturn(){
+  var el=document.getElementById('checkoutTransition');
+  if(el)el.classList.add('vis');
+  setTimeout(function(){
+    if(el)el.classList.remove('vis');
+    hideWidgetForMap();
+    showFlowToast('Your cart is still saved. Choose another spot when ready.',3200);
+  },850);
+}
+
+function scrollToCheckoutPanel(){
+  var ws=document.getElementById('widgetSection');
+  if(!ws)return;
+  setTimeout(function(){
+    if(isTouch){
+      ws.scrollTop=0;
+      var wf=document.querySelector('.widget-frame'); if(wf)wf.scrollTop=0;
+      window.scrollTo(0,0);
+    }else{
+      ws.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  },120);
 }
 
 // ── SESSION BANNER (NEW: multi-stall flow) ──────────────────
 function updateSessionBanner(){
   var banner=document.getElementById('sessionBanner');
+  var bar=document.getElementById('mobileCheckoutBar');
   if(sessionActive){
     banner.classList.add('vis');
-    document.getElementById('sessionBannerText').textContent=
-      sessionItemCount>0?(sessionItemCount+' item'+(sessionItemCount!==1?'s':'')+' in your cart \u2014 add more or checkout'):'Booking in progress \u2014 add more stalls or checkout';
+    document.getElementById('sessionBannerText').textContent='Booking in progress';
+    if(bar){bar.classList.remove('vis');document.body.classList.remove('has-mobile-checkout-bar');}
   }else{
     banner.classList.remove('vis');
+    if(bar)bar.classList.remove('vis');
+    document.body.classList.remove('has-mobile-checkout-bar');
+    document.body.classList.remove('has-collapsed-checkout');
+    var ws=document.getElementById('widgetSection'); if(ws)ws.classList.remove('widget-collapsed');
   }
 }
 function sessionAddMore(){
-  closeWidget();
-  // If we're on the hub, stay there so user can pick an area
-  // If we're in a map view, scroll to the grid
+  hideWidgetForMap();
+}
+function collapseWidgetForMap(){
+  var ws=document.getElementById('widgetSection');
+  var iframe=document.querySelector('#CF_WIDGET_TARGET iframe');
+  if(!ws||!iframe){closeWidget();return;}
+  ws.classList.add('vis','widget-collapsed');
+  document.body.classList.remove('widget-active');
+  document.body.classList.add('has-collapsed-checkout');
+  var dock=document.getElementById('mobilePreservedDockSub');
+  if(dock) dock.textContent='Cart saved. Tap to reopen checkout.';
+}
+function expandPreservedCheckout(){
+  var ws=document.getElementById('widgetSection');
+  var iframe=document.querySelector('#CF_WIDGET_TARGET iframe');
+  if(!ws||!iframe){
+    if(typeof mobileContinueCheckout==='function') mobileContinueCheckout();
+    return;
+  }
+  ws.classList.remove('widget-collapsed');
+  ws.classList.add('vis');
+  document.body.classList.remove('has-collapsed-checkout');
+  document.body.classList.add('widget-active');
+  var panel=document.getElementById('infoPanel'); if(panel)panel.classList.remove('vis');
+  scrollToCheckoutPanel();
+}
+function hideWidgetForMap(){
+  if(isTouch&&sessionActive&&document.querySelector('#CF_WIDGET_TARGET iframe')){
+    collapseWidgetForMap();
+  }else{
+    closeWidget();
+  }
+  clearInfoPanel();
   var mapPanel=document.querySelector('.map-panel');
   if(mapPanel&&document.getElementById('mapView').classList.contains('vis')){
-    mapPanel.scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(function(){mapPanel.scrollIntoView({behavior:'smooth',block:'start'});},80);
   }
 }
+function cfGetSavedCartItems(){
+  var sources=[];
+  if(cfLastNonEmptyCart)sources.push(cfLastNonEmptyCart);
+  try{sources.push(sessionStorage.getItem('CheckfrontCart'));sources.push(localStorage.getItem('CheckfrontCart'));}catch(e){}
+  for(var i=0;i<sources.length;i++){
+    var parsed=cfParseCartValue(sources[i]);
+    if(parsed&&parsed.length>0)return parsed;
+  }
+  return [];
+}
+function cfGetLastPrimaryCartItem(){
+  var items=cfGetSavedCartItems().filter(function(item){return item&&item.sku!=='shavings'&&item.item_id&&item.slip;});
+  return items.length?items[items.length-1]:null;
+}
+function mobileContinueCheckout(){
+  var item=cfGetLastPrimaryCartItem();
+  if(!item){
+    showFlowToast('Your saved cart is not available yet. Choose another spot to continue.',3200);
+    return;
+  }
+  cfSuppressTransientEmptyCart(10000);
+  cfRestoreSavedCart();
+  sessionActive=true;updateSessionBanner();
+  _widgetWasLarge=false;
+  if(isTouch){document.body.classList.add('widget-active');document.getElementById('infoPanel').classList.remove('vis');}
+  document.getElementById('widgetSection').classList.remove('widget-collapsed');
+  document.getElementById('widgetSection').classList.add('vis');
+  document.getElementById('widgetTitle').textContent='Continue Checkout';
+  document.getElementById('widgetStallLabel').textContent='Your saved booking is still active';
+  document.getElementById('widgetFrameHeader').textContent='Resume your booking';
+  document.getElementById('widgetHint').innerHTML='Your cart is saved. Tap <strong>View</strong> in the Checkfront booking banner to review your cart and continue checkout, or use <strong>+ Add to Booking</strong> to return to the map again.';
+  document.getElementById('widgetMsg').style.display='block';
+  document.getElementById('widgetMsg').textContent='Loading your saved booking...';
+  document.getElementById('CF_WIDGET_TARGET').innerHTML='';
+  scrollToCheckoutPanel();
+  setTimeout(function(){
+    try{
+      document.getElementById('widgetMsg').style.display='none';
+      cfRestoreSavedCart();
+      var slipMatch=String(item.slip).match(/^(\d+)\.(\d{8})X(\d+)/);
+      var widgetDate=slipMatch?slipMatch[2]:fmtApi(document.getElementById('startDate').value);
+      new CHECKFRONT.Widget({
+        host:'circle-t-arena.manage.na1.bookingplatform.app',
+        target:'CF_WIDGET_TARGET',
+        item_id:String(item.item_id),
+        slip:item.slip,
+        date:widgetDate,
+        end_date:fmtApi(document.getElementById('endDate').value),
+        provider:'droplet',
+        options:'hidesearch,hidedates'
+      }).render();
+    }catch(err){
+      document.getElementById('widgetMsg').style.display='block';
+      document.getElementById('widgetMsg').innerHTML='Could not resume checkout. Choose another spot from the map to continue your saved booking.';
+    }
+  },350);
+}
 function sessionCheckout(){
+  if(isTouch){ mobileContinueCheckout(); return; }
+  cfSuppressTransientEmptyCart(8000);
+  cfRestoreSavedCart();
   document.getElementById('widgetSection').classList.add('vis');
   document.getElementById('widgetTitle').textContent='Your Cart';
   document.getElementById('widgetStallLabel').textContent='Review your items and complete checkout';
   document.getElementById('widgetFrameHeader').textContent='Your booking cart';
-  document.getElementById('widgetHint').innerHTML='Use <strong>+ Add to Booking</strong> to add more items, or continue through the prompts below to enter your details and complete your reservation.';
+  document.getElementById('widgetHint').innerHTML='Your saved cart is loaded below. Continue through checkout, or use <strong>+ Add to Booking</strong> to return to the map and choose another spot.';
   document.getElementById('widgetMsg').style.display='block';
   document.getElementById('CF_WIDGET_TARGET').innerHTML='';
-  setTimeout(function(){document.getElementById('widgetSection').scrollIntoView({behavior:'smooth',block:'start'});},100);
+  scrollToCheckoutPanel();
   setTimeout(function(){
     try{
       document.getElementById('widgetMsg').style.display='none';
+      cfRestoreSavedCart();
       new CHECKFRONT.Widget({
         host:'circle-t-arena.manage.na1.bookingplatform.app',
         target:'CF_WIDGET_TARGET',
@@ -843,6 +1134,7 @@ function sessionCheckout(){
   },500);
 }
 function sessionClear(){
+  cfClearSavedCart();
   sessionActive=false;
   sessionItemCount=0;
   updateSessionBanner();
@@ -852,25 +1144,41 @@ function sessionClear(){
 var _widgetWasLarge=false;
 window.addEventListener('message',function(e){
   if(!e.origin||!e.origin.includes('bookingplatform'))return;
-  if(typeof e.data!=='number')return;
 
+  // droplet-cart sends structured cart updates to the parent page. Keep the last non-empty cart
+  // available for restoration and ignore transient empty-cart updates during the add-more transition.
+  if(e.data&&typeof e.data==='object'&&e.data.event==='cartUpdated'){
+    try{
+      if(Array.isArray(e.data.cart)&&e.data.cart.length>0){
+        var serialized=JSON.stringify(e.data.cart);
+        cfRememberCart(serialized);
+        _nativeStorageSetItem.call(localStorage,'CheckfrontCart',serialized);
+        _nativeStorageSetItem.call(sessionStorage,'CheckfrontCart',serialized);
+        sessionActive=true;
+        sessionItemCount=Math.max(sessionItemCount,e.data.cart.filter(function(item){return item&&item.sku!=='shavings';}).length||1);
+        updateSessionBanner();
+      }else if(Array.isArray(e.data.cart)&&e.data.cart.length===0){
+        if(cfShouldSuppressEmptyCart('[]'))cfRestoreSavedCart();
+        else cfHandleIntentionalEmptyCart();
+      }
+    }catch(err){}
+    return;
+  }
+
+  if(typeof e.data!=='number')return;
   var height=e.data;
   var widgetVisible=document.getElementById('widgetSection').classList.contains('vis');
   if(!widgetVisible)return;
 
-  if(height>1500)_widgetWasLarge=true;
+  // Mobile cart overview in this account is often around 900-1000px, not >1500px.
+  if(height>800)_widgetWasLarge=true;
 
-  // Detect "Add to Booking" transition: was large, now small
-  if(_widgetWasLarge&&height<500&&height>100){
+  // Detect + Add to Booking transition: cart/overview was large, then droplet returns to a small product state.
+  if(_widgetWasLarge&&height<460&&height>100){
     _widgetWasLarge=false;
+    cfSuppressTransientEmptyCart(8000);
     updateSessionBanner();
-    setTimeout(function(){
-      closeWidget();
-      var mapPanel=document.querySelector('.map-panel');
-      if(mapPanel&&document.getElementById('mapView').classList.contains('vis')){
-        mapPanel.scrollIntoView({behavior:'smooth',block:'start'});
-      }
-    },600);
+    showCheckoutTransitionThenReturn();
   }
 });
 
@@ -887,26 +1195,37 @@ function bookSelected(){
 }
 function launchBooking(){
   if(cart.length===0)return;var first=cart[0],cl=cart.map(function(c){return c.label;}).join(', ');
+  cfSuppressTransientEmptyCart(10000);
+  cfRestoreSavedCart();
   sessionActive=true;
   sessionItemCount++;
   updateSessionBanner();
   _widgetWasLarge=false;
   var hint=document.getElementById('widgetHint');
   if(sessionItemCount<=1){
-    hint.innerHTML='Click <strong>Book Now</strong> below to add this item to your cart. After confirming your dates, use <strong>+ Add to Booking</strong> to keep adding, or continue through the prompts to enter your details and complete your reservation.';
+    hint.innerHTML='Tap <strong>Book Now</strong> below to add this spot. After it is added, use <strong>+ Add to Booking</strong> to return to the map and choose another spot, or continue through checkout when finished.';
   }else{
-    hint.innerHTML='You have items in your cart. Click <strong>Book Now</strong> below to add this one too. Use <strong>+ Add to Booking</strong> to keep adding, or continue through the prompts to complete your reservation when ready.';
+    hint.innerHTML='Your previous selections are saved. Tap <strong>Book Now</strong> below to add this spot to the same reservation, then continue checkout or use <strong>+ Add to Booking</strong> to choose another spot.';
   }
   document.getElementById('widgetTitle').textContent=sessionItemCount<=1?'Complete Your Reservation':'Add to Your Reservation';
+  if(isTouch){document.body.classList.add('widget-active');document.body.classList.remove('has-collapsed-checkout');document.getElementById('infoPanel').classList.remove('vis');}
+  document.getElementById('widgetSection').classList.remove('widget-collapsed');
   document.getElementById('widgetSection').classList.add('vis');document.getElementById('widgetStallLabel').textContent=cl;
   document.getElementById('widgetFrameHeader').textContent='Adding '+cl+' to your cart';document.getElementById('widgetMsg').style.display='block';document.getElementById('CF_WIDGET_TARGET').innerHTML='';
-  setTimeout(function(){document.getElementById('widgetSection').scrollIntoView({behavior:'smooth',block:'start'});},100);
+  scrollToCheckoutPanel();
   setTimeout(function(){try{document.getElementById('widgetMsg').style.display='none';
+    cfRestoreSavedCart();
     new CHECKFRONT.Widget({host:'circle-t-arena.manage.na1.bookingplatform.app',target:'CF_WIDGET_TARGET',item_id:String(first.itemId),slip:first.slip,date:fmtApi(document.getElementById('startDate').value),end_date:fmtApi(document.getElementById('endDate').value),provider:'droplet',options:'hidesearch,hidedates'}).render();
     if(cart.length>1){document.getElementById('widgetMsg').style.display='block';document.getElementById('widgetMsg').innerHTML='<div style="margin-bottom:10px;color:var(--gldl);font-size:11px;">Booking '+first.label+' first. After completing, book remaining: '+cart.slice(1).map(function(c){return c.label;}).join(', ')+'.</div>';}
   }catch(err){document.getElementById('widgetMsg').style.display='block';document.getElementById('widgetMsg').innerHTML='Could not load reservation form. <a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Book directly here</a>';}},500);
 }
-function closeWidget(){document.getElementById('widgetSection').classList.remove('vis');document.getElementById('CF_WIDGET_TARGET').innerHTML='';}
+function closeWidget(){
+  var tr=document.getElementById('checkoutTransition'); if(tr)tr.classList.remove('vis');
+  var ws=document.getElementById('widgetSection');
+  if(ws)ws.classList.remove('vis','widget-collapsed');
+  document.getElementById('CF_WIDGET_TARGET').innerHTML='';
+  document.body.classList.remove('widget-active','has-collapsed-checkout');
+}
 
 // ── INIT ────────────────────────────────────────────────────
 window.addEventListener('load',function(){
