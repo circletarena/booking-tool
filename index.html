@@ -28,9 +28,9 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .logo { height:38px; flex-shrink:0; }
 .logo img { height:100%; width:auto; display:block; }
 .brand-text h1 { font-family:'Playfair Display',serif; font-size:19px; font-weight:700; line-height:1.1; }
-.brand-text p { font-size:11px; color:var(--txd); margin-top:2px; text-transform:uppercase; letter-spacing:0.08em; }
+.brand-text p { display:none; }
 .hdr-actions { display:flex; align-items:center; gap:10px; }
-.badge { font-size:10px; padding:4px 10px; border-radius:20px; background:var(--chk); border:1px solid var(--gld); color:var(--gldl); letter-spacing:0.06em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }
+.badge { font-size:9px; padding:4px 9px; border-radius:20px; background:transparent; border:1px solid rgba(212,170,68,0.65); color:var(--gldl); letter-spacing:0.08em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; opacity:0.9; }
 
 /* ── Property Map Button ─────────────────────────────────── */
 .btn-propmap { display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:20px; background:transparent; border:1px solid var(--gld); color:var(--gldl); font-size:11px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; cursor:pointer; transition:background 0.15s, color 0.15s, border-color 0.15s; white-space:nowrap; }
@@ -56,6 +56,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 @media(max-width:900px){
   .propmap-header { padding:12px 16px; }
   .propmap-title { font-size:16px; }
+  .badge { display:none; }
   .propmap-close-x { display:none; }
   .propmap-body { padding:0 8px; align-items:flex-start; padding-bottom:80px; /* space for close bar */ }
   .propmap-img { max-width:none; width:max(100%, 900px); max-height:none; touch-action:pan-x pan-y pinch-zoom; }
@@ -85,17 +86,17 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .hub-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; }
 .hub-title { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; margin-bottom:0; }
 .hub-title-row .btn-propmap { flex-shrink:0; }
-.hub-subtitle { font-size:13px; color:var(--txd); margin-bottom:20px; }
+.hub-subtitle { font-size:13px; color:var(--txd); margin-bottom:20px; line-height:1.5; }
 (max-width:480px){
   .hub-title-row { align-items:flex-start; }
   .hub-title { font-size:22px; }
 }
 .hub-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:14px; }
-.area-card { background:var(--sf); border:1px solid var(--bd); border-radius:8px; padding:18px 20px; cursor:pointer; transition:border-color 0.2s, transform 0.15s, box-shadow 0.2s; position:relative; overflow:hidden; }
+.area-card { background:linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0)), var(--sf); border:1px solid rgba(94,85,72,0.72); border-radius:10px; padding:18px 20px; cursor:pointer; transition:border-color 0.2s, transform 0.15s, box-shadow 0.2s; position:relative; overflow:hidden; }
 .area-card:hover { border-color:var(--gld); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
 .area-card:focus-visible { outline:2px solid var(--gldl); outline-offset:2px; }
 .area-card .ac-name { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; margin-bottom:6px; }
-.area-card .ac-desc { font-size:14px; color:var(--txd); margin-bottom:12px; line-height:1.5; }
+.area-card .ac-desc { font-size:13px; color:var(--txd); margin-bottom:12px; line-height:1.45; }
 .ac-avail-ok { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; color:var(--grnl); margin-bottom:4px; }
 .ac-avail-low { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; color:var(--redl); margin-bottom:4px; }
 .ac-avail-pending { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--txm); margin-bottom:4px; }
@@ -219,7 +220,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .widget-frame { background:#f5f3ef; border:1px solid var(--bd); border-radius:var(--radius); overflow:hidden; }
 .widget-frame-header { background:#e8e4dc; padding:11px 16px; font-size:12px; color:#4a4030; font-family:'JetBrains Mono',monospace; border-bottom:1px solid #d0c8b8; }
 .widget-wrap { min-height:100px; padding:16px; background:#fff; }
-.widget-hint { padding:11px 16px; background:#eae6de; border-bottom:1px solid #d0c8b8; font-size:14px; color:#4a4030; font-weight:500; }
+.widget-hint { padding:10px 16px; background:#eae6de; border-bottom:1px solid #d0c8b8; font-size:13px; line-height:1.45; color:#4a4030; font-weight:500; }
 .widget-hint strong { color:#2a2010; }
 .widget-loading { font-size:13px; color:var(--txd); text-align:center; padding:20px; }
 
@@ -227,8 +228,9 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 .fallback-banner a { color:var(--gldl); text-decoration:underline; }
 .fallback-banner.vis { display:block; }
 
-.legend { display:flex; gap:14px; padding:12px 20px; border-top:1px solid var(--bd); background:var(--sf); flex-wrap:wrap; }
-.li { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--txd); }
+.legend { display:flex; gap:16px; padding:10px 20px; border-top:1px solid rgba(94,85,72,0.55); background:rgba(30,27,22,0.96); flex-wrap:wrap; }
+.legend .li:nth-child(1), .legend .li:nth-child(2) { display:none; }
+.li { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--txd); opacity:0.9; }
 .lw { width:16px; height:10px; border-radius:2px; border:1.5px solid; }
 .lw.neu { background:var(--neu); border-color:var(--bd); }
 .lw.avail { background:var(--grnd); border-color:var(--grn); }
@@ -266,7 +268,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
   body.widget-active .mobile-cart-fab { display:none !important; }
   body.widget-active .mobile-checkout-bar { display:none !important; }
   body.widget-active .widget-wrap { flex:1; padding:8px; }
-  body.widget-active .widget-hint { font-size:14px; line-height:1.4; padding:12px 14px; flex-shrink:0; }
+  body.widget-active .widget-hint { font-size:13px; line-height:1.4; padding:10px 14px; flex-shrink:0; }
   body.widget-active .widget-header h3 { font-size:21px; line-height:1.05; }
   body.widget-active .widget-stall { font-size:13px; }
   body.widget-active .btn-widget-back { font-size:15px; padding:10px 14px; }
@@ -429,7 +431,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
   <div class="mobile-checkout-bar-inner">
     <div class="mobile-checkout-bar-copy">
       <div class="mobile-checkout-bar-title">Booking in progress</div>
-      <div class="mobile-checkout-bar-sub">Choose another spot below, or continue checkout.</div>
+      <div class="mobile-checkout-bar-sub">Choose another spot or continue checkout.</div>
     </div>
     <button class="mobile-checkout-bar-btn" onclick="mobileContinueCheckout()">Continue checkout</button>
   </div>
@@ -458,7 +460,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
       <span class="propmap-label">Property Map</span>
     </button>
   </div>
-  <div class="hub-subtitle">Select dates above, then pick an area to view the interactive map and reserve.</div>
+  <div class="hub-subtitle">Pick a section to view available stalls and RV sites.</div>
   <div class="hub-grid" id="hubGrid"></div>
 </div>
 
@@ -480,7 +482,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
     <div class="info-panel" id="infoPanel" role="complementary" aria-label="Stall details">
       <div class="info-empty" id="infoEmpty">
         <div class="icon" aria-hidden="true">🐴</div>
-        <p>Tap any available stall or RV to see pricing and reserve it.</p>
+        <p>Select a spot to view details and reserve.</p>
       </div>
       <div class="info-content" id="infoContent">
         <div class="info-header">
@@ -524,7 +526,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
   </div>
   <div class="widget-frame">
     <div class="widget-frame-header" id="widgetFrameHeader">Completing reservation...</div>
-    <div class="widget-hint" id="widgetHint">Tap <strong>Book Now</strong> below to add this spot. After it is added, use <strong>+ Add to Booking</strong> to return to the map and choose another spot, or continue through checkout when finished.</div>
+    <div class="widget-hint" id="widgetHint">Add this spot below. When finished, continue checkout, or use <strong>+ Add to Booking</strong> to choose another spot.</div>
     <div class="widget-wrap"><div class="widget-loading" id="widgetMsg">Loading reservation form...</div><div id="CF_WIDGET_TARGET"></div></div>
   </div>
 </div>
@@ -532,7 +534,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 <div class="checkout-transition" id="checkoutTransition" aria-live="polite">
   <div class="checkout-transition-card">
     <h4>Cart saved</h4>
-    <p>Your booking is still active. Returning you to the map so you can choose another spot.</p>
+    <p>Your cart is still active. Returning you to the map.</p>
   </div>
 </div>
 <div class="flow-toast" id="flowToast" aria-live="polite"></div>
@@ -541,7 +543,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
   <div class="li"><div class="lw neu"></div> Not checked</div>
   <div class="li"><div class="lw chk"></div> Checking...</div>
   <div class="li"><div class="lw avail"></div> Available</div>
-  <div class="li"><div class="lw unavail"></div> Booked</div>
+  <div class="li"><div class="lw unavail"></div> Unavailable</div>
   <div class="li"><div class="lw cart"></div> In cart</div>
 </div>
 
@@ -1138,7 +1140,7 @@ function mobileContinueCheckout(){
   document.getElementById('widgetTitle').textContent='Continue Checkout';
   document.getElementById('widgetStallLabel').textContent='Your saved booking is still active';
   document.getElementById('widgetFrameHeader').textContent='Resume your booking';
-  document.getElementById('widgetHint').innerHTML='Your cart is saved. Tap <strong>View</strong> in the Checkfront booking banner to review your cart and continue checkout, or use <strong>+ Add to Booking</strong> to return to the map again.';
+  document.getElementById('widgetHint').innerHTML='Your cart is saved. Use <strong>View</strong> to continue checkout, or <strong>+ Add to Booking</strong> to choose another spot.';
   document.getElementById('widgetMsg').style.display='block';
   document.getElementById('widgetMsg').textContent='Loading your saved booking...';
   document.getElementById('CF_WIDGET_TARGET').innerHTML='';
@@ -1173,7 +1175,7 @@ function sessionCheckout(){
   document.getElementById('widgetTitle').textContent='Your Cart';
   document.getElementById('widgetStallLabel').textContent='Review your items and complete checkout';
   document.getElementById('widgetFrameHeader').textContent='Your booking cart';
-  document.getElementById('widgetHint').innerHTML='Your saved cart is loaded below. Continue through checkout, or use <strong>+ Add to Booking</strong> to return to the map and choose another spot.';
+  document.getElementById('widgetHint').innerHTML='Your cart is loaded below. Continue checkout, or use <strong>+ Add to Booking</strong> to choose another spot.';
   document.getElementById('widgetMsg').style.display='block';
   document.getElementById('CF_WIDGET_TARGET').innerHTML='';
   scrollToCheckoutPanel();
