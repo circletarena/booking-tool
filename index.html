@@ -374,6 +374,21 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
   body.has-collapsed-checkout .map-panel { padding-bottom:88px; }
 }
 
+
+/* ── Tablet map preservation: keep barn layouts spatially consistent on iPad/tablet.
+   Instead of wrapping/stacking rows, preserve the rendered map and allow horizontal scroll.
+   Phones keep the existing compact/mobile behavior below this range. */
+@media (min-width:701px) and (max-width:1180px){
+  .map-panel { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .map-panel #mapContent { width:max-content; min-width:100%; }
+  .map-panel .barn-wrap,
+  .map-panel .block-wrap { flex-wrap:nowrap; width:max-content; max-width:none; }
+  .map-panel .barn-section { flex:0 0 auto; }
+  .map-panel .stall-row,
+  .map-panel .rv-row { flex-wrap:nowrap; }
+  .map-panel .lm-frame { width:max-content; min-width:900px; }
+}
+
 </style>
 </head>
 <body>
@@ -555,7 +570,10 @@ var SHOW_LAYOUT_TOGGLE=true;
 var LAYOUT_IMAGES={
   'barn-a':'/barn-a-layout.png',
   'barn-b':'/barn-b-layout.png',
-  'barn-c':'/barn-c-layout.png'
+  'barn-c':'/barn-c-layout.png',
+  'vip-pool':'/vip-pool-layout.png',
+  'treeline':'/treeline-layout.png',
+  'vip-hill':'/vip-hill-layout.png'
 };
 
 // ── Property Map Modal ──────────────────────────────────────
@@ -600,6 +618,215 @@ var widgetHeightHistory=[];      // track recent heights for transition detectio
 var lastWidgetHeight=0;
 var sessionItemCount=0;          // track items added this session
 
+
+// ── Light journey logging (production-safe, no customer/payment data) ──
+// This is intentionally quiet: existing diagnostic call sites are normalized and filtered here
+// so only major customer journey checkpoints reach /api/log.
+var CTA_JOURNEY_EVENT_MAP={
+  app_loaded:'APP_LOADED',
+  dates_changed:'DATES_CHANGED',
+  area_opened:'AREA_OPENED',
+  cell_selected:'PRODUCT_SELECTED',
+  unavailable_cell_selected:'AVAILABILITY_BLOCKED',
+  rule_blocked_detail_shown:'AVAILABILITY_BLOCKED',
+  availability_detail_response:'AVAILABILITY_CONFIRMED',
+  availability_detail_rendered:'AVAILABILITY_CONFIRMED',
+  book_selected_clicked:'BOOK_SELECTED',
+  widget_open_requested:'WIDGET_OPENED',
+  widget_render_called:'PRODUCT_WIDGET_RENDERED',
+  desktop_cart_widget_render_called:'PRODUCT_WIDGET_RENDERED',
+  mobile_resume_widget_render_called:'PRODUCT_WIDGET_RENDERED',
+  cart_updated_nonempty:'CART_CONFIRMED',
+  cart_updated_received:'CART_CONFIRMED',
+  cart_updated_empty:'CART_EMPTY_RECEIVED',
+  cart_updated_empty_suppressed:'CART_EMPTY_SUPPRESSED',
+  cf_empty_cart_write_suppressed:'CART_EMPTY_SUPPRESSED',
+  cf_empty_cart_remove_suppressed:'CART_EMPTY_SUPPRESSED',
+  cf_intentional_empty_cart:'CART_EMPTY_ACCEPTED_CLEARING_SESSION',
+  add_to_booking_transition_detected:'CHECKFRONT_ADD_MORE_TRANSITION_DETECTED',
+  checkout_transition_return_to_map:'RETURNED_TO_MAP',
+  back_to_map_from_widget:'RETURNED_TO_MAP',
+  widget_collapsed_to_dock:'WIDGET_COLLAPSED_TO_DOCK',
+  dock_reopened:'DOCK_REOPENED',
+  page_hidden_with_active_cart:'PAGE_HIDDEN_WITH_ACTIVE_CART',
+  pagehide_with_active_cart:'PAGEHIDE_WITH_ACTIVE_CART',
+  beforeunload_with_active_cart:'BEFOREUNLOAD_WITH_ACTIVE_CART',
+  js_error:'JS_ERROR',
+  unhandled_rejection:'UNHANDLED_REJECTION'
+};
+var CTA_JOURNEY_ALLOWED={
+  APP_LOADED:1,DATES_CHANGED:1,AREA_OPENED:1,PRODUCT_SELECTED:1,AVAILABILITY_CONFIRMED:1,AVAILABILITY_BLOCKED:1,
+  BOOK_SELECTED:1,WIDGET_OPENED:1,PRODUCT_WIDGET_RENDERED:1,CART_CONFIRMED:1,CART_EMPTY_RECEIVED:1,CART_EMPTY_SUPPRESSED:1,
+  CART_EMPTY_ACCEPTED_CLEARING_SESSION:1,CHECKFRONT_ADD_MORE_TRANSITION_DETECTED:1,RETURNED_TO_MAP:1,WIDGET_COLLAPSED_TO_DOCK:1,
+  DOCK_REOPENED:1,PAGE_HIDDEN_WITH_ACTIVE_CART:1,PAGEHIDE_WITH_ACTIVE_CART:1,BEFOREUNLOAD_WITH_ACTIVE_CART:1,JS_ERROR:1,UNHANDLED_REJECTION:1
+};
+function normalizeJourneyEventName(eventName){
+  var raw=String(eventName||'').trim();
+  if(!raw)return null;
+  if(CTA_JOURNEY_ALLOWED[raw])return raw;
+  var lower=raw.toLowerCase();
+  return CTA_JOURNEY_EVENT_MAP[lower]||null;
+}
+function getAppSessionId(){
+  try{
+    var key='ctaAppSessionId';
+    var existing=sessionStorage.getItem(key);
+    if(existing)return existing;
+    var created='cta_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+    sessionStorage.setItem(key,created);
+    return created;
+  }catch(e){return 'cta_no_storage_'+Date.now();}
+}
+function safeCartItemForJourney(item){
+  item=item||{};
+  return{
+    item_id:item.item_id||item.itemId||item.product_id||item.productId||null,
+    product_id:item.product_id||item.productId||item.item_id||item.itemId||null,
+    sku:item.sku||null,
+    slip:item.slip||null,
+    qty:item.qty||item.quantity||null,
+    productName:item.productName||item.name||item.item_name||item.title||null
+  };
+}
+function getSavedCheckfrontCartForLog(){
+  try{
+    var raw=null;
+    if(typeof cfLastNonEmptyCart!=='undefined'&&cfLastNonEmptyCart)raw=cfLastNonEmptyCart;
+    if(!raw)raw=sessionStorage.getItem('CheckfrontCart')||localStorage.getItem('CheckfrontCart');
+    if(!raw)return{count:0,productIds:[],hasCart:false,primaryItems:[]};
+    var parsed=JSON.parse(raw);
+    if(!Array.isArray(parsed))return{count:0,productIds:[],hasCart:false,primaryItems:[]};
+    var primary=[];
+    var productIds=[];
+    parsed.forEach(function(item){
+      if(!item)return;
+      var safe=safeCartItemForJourney(item);
+      if(safe.product_id)productIds.push(String(safe.product_id));
+      if(item.sku!=='shavings')primary.push(safe);
+    });
+    return{count:parsed.length,productIds:productIds,hasCart:parsed.length>0,primaryItems:primary.slice(0,8)};
+  }catch(e){return{count:0,productIds:[],hasCart:false,primaryItems:[]};}
+}
+function getCurrentWidgetStateForLog(){
+  try{
+    var ws=document.getElementById('widgetSection');
+    if(!ws||!ws.classList.contains('vis'))return'inactive';
+    if(ws.classList.contains('widget-collapsed'))return'collapsed';
+    return'active';
+  }catch(e){return'unknown';}
+}
+function getSelectedContextForLog(){
+  try{
+    var ctx={label:selectedLabel||null,itemId:null,productName:null,cellType:null,cellNumber:null};
+    if(selectedCell&&selectedCell.dataset){
+      var type=selectedCell.dataset.type||null;
+      var num=type==='rv'?selectedCell.dataset.rv:(type==='turnout'?selectedCell.dataset.turnout:selectedCell.dataset.stall);
+      var key=(type==='rv'?'r_':(type==='turnout'?'to_':'s_'))+parseInt(num,10);
+      var prod=productMap[key];
+      ctx.cellType=type;
+      ctx.cellNumber=num||null;
+      if(prod){ctx.itemId=prod.itemId||null;ctx.productName=prod.name||null;}
+    }
+    return ctx;
+  }catch(e){return{label:null,itemId:null,productName:null,cellType:null,cellNumber:null};}
+}
+function sanitizeCartPayloadForLog(cartPayload){
+  try{
+    if(!Array.isArray(cartPayload))return null;
+    return cartPayload.slice(0,12).map(safeCartItemForJourney);
+  }catch(e){return null;}
+}
+function getRecentJourneySteps(){
+  try{
+    var raw=sessionStorage.getItem('ctaJourneySteps');
+    var parsed=raw?JSON.parse(raw):[];
+    return Array.isArray(parsed)?parsed.slice(-12):[];
+  }catch(e){return[];}
+}
+function rememberJourneyStep(eventName,selected,extra){
+  try{
+    var steps=getRecentJourneySteps();
+    steps.push({
+      event:eventName,
+      at:new Date().toISOString(),
+      area:currentArea&&currentArea.id?currentArea.id:null,
+      label:(extra&&extra.label)||selected.label||null,
+      itemId:(extra&&extra.itemId)||selected.itemId||null,
+      widgetState:getCurrentWidgetStateForLog()
+    });
+    steps=steps.slice(-12);
+    sessionStorage.setItem('ctaJourneySteps',JSON.stringify(steps));
+    return steps;
+  }catch(e){return[];}
+}
+function sanitizeExtraForJourney(extra){
+  extra=extra||{};
+  var safe={};
+  var allowed=['areaId','areaName','label','itemId','cellType','cellNumber','productName','available','hasSlip','priceTotal','nights','dateRange','error','message','source','line','column','height','cartLength','durationMs','storage','slip','sessionItemCount','selected','primaryCartItems'];
+  allowed.forEach(function(k){
+    if(typeof extra[k]!=='undefined')safe[k]=extra[k];
+  });
+  if(extra.cartPayload)safe.cartPayload=sanitizeCartPayloadForLog(extra.cartPayload);
+  return safe;
+}
+function logAppEvent(eventName,extra){
+  try{
+    var normalized=normalizeJourneyEventName(eventName);
+    if(!normalized)return;
+    extra=extra||{};
+
+    // Suppress availability detail double-logs when an earlier response already captured the same checkpoint.
+    if(String(eventName).toLowerCase()==='availability_detail_rendered'&&extra&&!extra.error)return;
+    if(normalized==='CART_CONFIRMED'&&extra&&typeof extra.cartLength==='number'&&extra.cartLength<=0)return;
+
+    var d=(typeof getDates==='function')?getDates():{start:null,end:null};
+    var cartInfo=getSavedCheckfrontCartForLog();
+    var selected=getSelectedContextForLog();
+    var journey=rememberJourneyStep(normalized,selected,extra);
+    var payload={
+      sessionId:getAppSessionId(),
+      event:normalized,
+      clientTimestamp:new Date().toISOString(),
+      url:window.location.href,
+      referrer:document.referrer||null,
+      startDate:d.start||null,
+      endDate:d.end||null,
+      dates:{start:d.start||null,end:d.end||null},
+      currentArea:currentArea&&currentArea.id?currentArea.id:null,
+      areaName:currentArea&&currentArea.name?currentArea.name:null,
+      label:extra.label||selected.label||null,
+      itemId:extra.itemId||selected.itemId||null,
+      productName:extra.productName||selected.productName||null,
+      cellType:extra.cellType||selected.cellType||null,
+      cellNumber:extra.cellNumber||selected.cellNumber||null,
+      widgetState:getCurrentWidgetStateForLog(),
+      cartItemsCount:cartInfo.count,
+      cartProductIds:cartInfo.productIds,
+      hasSavedCheckfrontCart:cartInfo.hasCart,
+      viewport:{width:window.innerWidth,height:window.innerHeight,devicePixelRatio:window.devicePixelRatio||1},
+      userAgent:navigator.userAgent,
+      touch:isTouch,
+      mobileish:!!(isTouch||window.innerWidth<=900),
+      visibilityState:document.visibilityState,
+      journey:journey,
+      extra:Object.assign({},sanitizeExtraForJourney(extra),{selected:selected,primaryCartItems:cartInfo.primaryItems})
+    };
+    fetch('/api/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).catch(function(){});
+  }catch(e){/* logging must never break booking */}
+}
+function hasActiveCartForExitLog(){
+  try{
+    var cartInfo=getSavedCheckfrontCartForLog();
+    return !!(cartInfo.hasCart||sessionActive||document.body.classList.contains('widget-active')||document.body.classList.contains('has-collapsed-checkout'));
+  }catch(e){return false;}
+}
+window.addEventListener('error',function(e){logAppEvent('JS_ERROR',{message:e.message||'error',source:e.filename||null,line:e.lineno||null,column:e.colno||null});});
+window.addEventListener('unhandledrejection',function(e){logAppEvent('UNHANDLED_REJECTION',{message:e&&e.reason?(e.reason.message||String(e.reason)):'unhandled rejection'});});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&hasActiveCartForExitLog())logAppEvent('PAGE_HIDDEN_WITH_ACTIVE_CART');});
+window.addEventListener('pagehide',function(){if(hasActiveCartForExitLog())logAppEvent('PAGEHIDE_WITH_ACTIVE_CART');});
+window.addEventListener('beforeunload',function(){if(hasActiveCartForExitLog())logAppEvent('BEFOREUNLOAD_WITH_ACTIVE_CART');});
+
+
 // ── Droplet cart bridge guard ───────────────────────────────
 // The Checkfront droplet-cart feature exports cart state to the parent page so Safari/mobile
 // can restore it between product-specific droplets. During the + Add to Booking transition,
@@ -612,8 +839,8 @@ var _nativeStorageSetItem=Storage.prototype.setItem;
 var _nativeStorageRemoveItem=Storage.prototype.removeItem;
 function cfIsCheckfrontCartKey(key){return String(key)==='CheckfrontCart';}
 function cfParseCartValue(value){try{var parsed=JSON.parse(value);return Array.isArray(parsed)?parsed:null;}catch(e){return null;}}
-function cfRememberCart(value){var parsed=cfParseCartValue(value);if(parsed&&parsed.length>0){cfLastNonEmptyCart=value;cfLastNonEmptyAt=Date.now();}}
-function cfSuppressTransientEmptyCart(ms){cfSuppressEmptyCartUntil=Math.max(cfSuppressEmptyCartUntil,Date.now()+(ms||6000));}
+function cfRememberCart(value){var parsed=cfParseCartValue(value);if(parsed&&parsed.length>0){cfLastNonEmptyCart=value;cfLastNonEmptyAt=Date.now();logAppEvent('cf_cart_remembered',{cartLength:parsed.length,cartPayload:sanitizeCartPayloadForLog(parsed)});}}
+function cfSuppressTransientEmptyCart(ms){cfSuppressEmptyCartUntil=Math.max(cfSuppressEmptyCartUntil,Date.now()+(ms||6000));logAppEvent('cf_suppress_empty_cart_window',{durationMs:ms||6000});}
 function cfShouldSuppressEmptyCart(value){var parsed=cfParseCartValue(value);return parsed&&parsed.length===0&&!!cfLastNonEmptyCart&&Date.now()<cfSuppressEmptyCartUntil;}
 function cfRestoreSavedCart(){
   var saved=cfLastNonEmptyCart;
@@ -627,15 +854,16 @@ function cfRestoreSavedCart(){
     cfLastNonEmptyCart=saved;cfLastNonEmptyAt=Date.now();
     _nativeStorageSetItem.call(localStorage,'CheckfrontCart',saved);
     _nativeStorageSetItem.call(sessionStorage,'CheckfrontCart',saved);
+    logAppEvent('cf_cart_restored');
     return true;
   }
   return false;
 }
 function cfClearSavedCart(){cfLastNonEmptyCart=null;cfLastNonEmptyAt=0;cfSuppressEmptyCartUntil=0;try{_nativeStorageSetItem.call(localStorage,'CheckfrontCart','[]');_nativeStorageSetItem.call(sessionStorage,'CheckfrontCart','[]');}catch(e){}}
-function cfHandleIntentionalEmptyCart(){cfClearSavedCart();sessionActive=false;sessionItemCount=0;cart=[];updateCartUI();updateSessionBanner();}
+function cfHandleIntentionalEmptyCart(){logAppEvent('cf_intentional_empty_cart');cfClearSavedCart();sessionActive=false;sessionItemCount=0;cart=[];updateCartUI();updateSessionBanner();}
 Storage.prototype.setItem=function(key,value){
   if(cfIsCheckfrontCartKey(key)){
-    if(cfShouldSuppressEmptyCart(value)){_nativeStorageSetItem.call(this,key,cfLastNonEmptyCart);return;}
+    if(cfShouldSuppressEmptyCart(value)){logAppEvent('cf_empty_cart_write_suppressed',{storage:'setItem'});_nativeStorageSetItem.call(this,key,cfLastNonEmptyCart);return;}
     var parsed=cfParseCartValue(value);
     if(parsed&&parsed.length===0&&cfLastNonEmptyCart){cfHandleIntentionalEmptyCart();return _nativeStorageSetItem.call(this,key,value);}
     cfRememberCart(value);
@@ -643,7 +871,7 @@ Storage.prototype.setItem=function(key,value){
   return _nativeStorageSetItem.call(this,key,value);
 };
 Storage.prototype.removeItem=function(key){
-  if(cfIsCheckfrontCartKey(key)&&cfShouldSuppressEmptyCart('[]')){_nativeStorageSetItem.call(this,key,cfLastNonEmptyCart);return;}
+  if(cfIsCheckfrontCartKey(key)&&cfShouldSuppressEmptyCart('[]')){logAppEvent('cf_empty_cart_remove_suppressed',{storage:'removeItem'});_nativeStorageSetItem.call(this,key,cfLastNonEmptyCart);return;}
   if(cfIsCheckfrontCartKey(key))cfHandleIntentionalEmptyCart();
   return _nativeStorageRemoveItem.call(this,key);
 };
@@ -663,6 +891,7 @@ function initDates(){
   if(ua){var area=AREAS.find(function(a){return a.id===ua;});if(area)setTimeout(function(){enterArea(area);},100);}
 }
 function onDateChange(){
+  logAppEvent('dates_changed');
   updateNightsPill();bookedMap={};closedSet=new Set();availCache={};cart=[];updateCartUI();batchRunId++;hubAvailData={};
   document.querySelectorAll('.sc').forEach(function(c){c.classList.remove('available','unavailable','checking','selected','in-cart');});
   clearInfoPanel();closeWidget();updateUrl();clearStaleTimer();
@@ -684,7 +913,7 @@ function updateUrl(){
 }
 function startStaleTimer(){clearStaleTimer();lastFetchedAt=Date.now();staleTimer=setInterval(function(){var el=Math.round((Date.now()-lastFetchedAt)/60000);if(el>=2){var lb=document.getElementById('progressLabel'),d=getDates();if(d.start&&d.end&&nightsBetween(d.start,d.end)>0){lb.innerHTML='Checked '+el+' min ago<span class="stale-link" onclick="refreshAvailability()">\u21bb Refresh</span>';lb.className='progress-label';}}},30000);}
 function clearStaleTimer(){if(staleTimer){clearInterval(staleTimer);staleTimer=null;}}
-function refreshAvailability(){var d=getDates();if(d.start&&d.end&&nightsBetween(d.start,d.end)>0){bookedMap={};closedSet=new Set();availCache={};if(currentArea)runBookingsCheck(d.start,d.end);fetchHubAvailability(d.start,d.end);}}
+function refreshAvailability(){logAppEvent('availability_refresh_clicked');var d=getDates();if(d.start&&d.end&&nightsBetween(d.start,d.end)>0){bookedMap={};closedSet=new Set();availCache={};if(currentArea)runBookingsCheck(d.start,d.end);fetchHubAvailability(d.start,d.end);}}
 
 // ── HUB ─────────────────────────────────────────────────────
 function renderHubCards(){
@@ -733,7 +962,7 @@ async function fetchHubAvailability(start,end){
     }).catch(function(){hubAvailData[area.id]={available:0,total:0,loaded:true,loading:false};renderHubCards();});
   });
   await Promise.all(promises);
-  setProgressLabel('\u2713 Availability current',true);setProgressBar(100);startStaleTimer();
+  setProgressLabel('\u2713 Availability current',true);setProgressBar(100);startStaleTimer();logAppEvent('map_availability_check_finished',{cellCount:document.querySelectorAll('.sc').length});
 }
 
 // ── AREA MAP ────────────────────────────────────────────────
@@ -751,7 +980,8 @@ function initLayoutToggle(area){
   imgWrap.classList.remove('vis');wrap.style.display='block';
 }
 function enterArea(area){
-  currentArea=area;productMap={};bookedMap={};closedSet=new Set();availCache={};cart=[];mapReady=false;pendingBatch=false;selectedCell=null;selectedLabel=null;
+  currentArea=area;
+  logAppEvent('area_opened',{areaId:area&&area.id,areaName:area&&area.name});productMap={};bookedMap={};closedSet=new Set();availCache={};cart=[];mapReady=false;pendingBatch=false;selectedCell=null;selectedLabel=null;
   document.getElementById('hubView').style.display='none';document.getElementById('mapView').classList.add('vis');
   document.getElementById('mapTitle').textContent=area.name;document.getElementById('mapSubtitle').textContent=area.subtitle;
   initLayoutToggle(area);
@@ -759,6 +989,7 @@ function enterArea(area){
   clearInfoPanel();updateCartUI();updateUrl();loadAreaProducts(area);
 }
 function backToHub(){
+  logAppEvent('back_to_hub');
   currentArea=null;productMap={};bookedMap={};closedSet=new Set();availCache={};cart=[];selectedCell=null;selectedLabel=null;mapReady=false;clearStaleTimer();
   document.getElementById('mapView').classList.remove('vis');document.getElementById('hubView').style.display='block';
   clearInfoPanel();closeWidget();updateUrl();
@@ -767,6 +998,7 @@ function backToHub(){
 }
 
 async function loadAreaProducts(area){
+  logAppEvent('area_products_load_started',{areaId:area&&area.id});
   try{
     var resp=await fetch('/api/products?categories='+area.categories);if(!resp.ok)throw new Error('API '+resp.status);
     var data=await resp.json();if(data.error)throw new Error(data.error);
@@ -778,11 +1010,11 @@ async function loadAreaProducts(area){
       else if(sm)productMap['s_'+parseInt(sm[1])]={itemId:p.id,name:name};
       else if(rm)productMap['r_'+parseInt(rm[1])]={itemId:p.id,name:name};
     }
-    buildAreaMap(area);document.getElementById('mapLoading').style.display='none';mapReady=true;
+    buildAreaMap(area);document.getElementById('mapLoading').style.display='none';mapReady=true;logAppEvent('area_products_load_finished',{areaId:area&&area.id,productCount:products.length});
     var d=getDates();if(d.start&&d.end&&nightsBetween(d.start,d.end)>0)runBookingsCheck(d.start,d.end);
     var params=new URLSearchParams(window.location.search),us=params.get('stall');
     if(us){var cell=document.querySelector('.sc[data-stall="'+us+'"]')||document.querySelector('.sc[data-rv="'+us+'"]');if(cell)setTimeout(function(){cell.click();},800);}
-  }catch(err){document.getElementById('mapLoading').innerHTML='<div class="err">Could not load: '+(err.message||err)+'. <a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Book directly here</a></div>';showFallback();}
+  }catch(err){logAppEvent('area_products_load_error',{message:err.message||String(err),areaId:area&&area.id});document.getElementById('mapLoading').innerHTML='<div class="err">Could not load: '+(err.message||err)+'. <a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Book directly here</a></div>';showFallback();}
 }
 
 // ── Cell Builders ───────────────────────────────────────────
@@ -902,7 +1134,7 @@ async function runBookingsCheck(start,end){
       else if(minStayReason){c.classList.add('unavailable');c.dataset.blockReason=minStayReason;c.setAttribute('aria-label',labelPrefix+num+', '+minStayReason);}
       else{c.classList.add('available');c.setAttribute('aria-label',labelPrefix+num+', available');}
     });
-    setProgressLabel('\u2713 Availability current',true);setProgressBar(100);startStaleTimer();
+    setProgressLabel('\u2713 Availability current',true);setProgressBar(100);startStaleTimer();logAppEvent('map_availability_check_finished',{cellCount:document.querySelectorAll('.sc').length});
   }catch(err){if(myRun!==batchRunId)return;document.querySelectorAll('.sc.checking').forEach(function(c){c.classList.remove('checking');});setProgressLabel('Could not check availability',false);showFallback();}
 }
 function setProgressBar(pct){document.getElementById('progressBar').style.width=pct+'%';}
@@ -929,12 +1161,13 @@ function handleCellSelect(cell){
   var key=(type==='rv'?'r_':(type==='turnout'?'to_':'s_'))+number;
   var prod=productMap[key];if(!prod)return;
   var label=type==='rv'?'RV Site '+number:(type==='turnout'?'Turn Out '+number:'Stall '+number);
+  logAppEvent('cell_selected',{label:label,itemId:prod.itemId,cellType:type,cellNumber:number,productName:prod.name});
   var minStayReason=getMinimumStayReason(type,prod,d.start,d.end);
-  if(cell.classList.contains('unavailable')&&!cell.dataset.blockReason){clearSelection();return;}
+  if(cell.classList.contains('unavailable')&&!cell.dataset.blockReason){logAppEvent('unavailable_cell_selected',{label:label,itemId:prod.itemId,cellType:type,cellNumber:number});clearSelection();return;}
   if(selectedCell)selectedCell.classList.remove('selected');selectedCell=cell;cell.classList.add('selected');
   selectedLabel=label;
   showInfoPanel(selectedLabel);
-  if(minStayReason||cell.dataset.blockReason){renderMinimumStayDetail(minStayReason||cell.dataset.blockReason,d.start,d.end);}
+  if(minStayReason||cell.dataset.blockReason){logAppEvent('rule_blocked_detail_shown',{label:label,itemId:prod.itemId,reason:minStayReason||cell.dataset.blockReason});renderMinimumStayDetail(minStayReason||cell.dataset.blockReason,d.start,d.end);}
   else{fetchStallDetail(prod.itemId,selectedLabel,cell,d.start,d.end);}
   updateUrl();
   if(isTouch)document.getElementById('infoPanel').classList.add('vis');
@@ -967,11 +1200,13 @@ function renderMinimumStayDetail(reason,start,end){
 }
 
 async function fetchStallDetail(itemId,label,cell,start,end){
-  if(availCache[itemId]){renderStallDetail(availCache[itemId],itemId,label,cell,start,end);return;}
-  try{var resp=await fetch('/api/availability?item_id='+itemId+'&start='+fmtApi(start)+'&end='+fmtApi(end));if(!resp.ok)throw new Error('API '+resp.status);var result=await resp.json();availCache[itemId]=result;if(selectedCell===cell)renderStallDetail(result,itemId,label,cell,start,end);}
-  catch(err){if(selectedCell===cell){document.getElementById('iAvailBanner').className='avail-banner error';document.getElementById('iAvailText').textContent='Error: '+(err.message||'Could not load');}}
+  logAppEvent('availability_detail_requested',{itemId:itemId,label:label,start:start,end:end});
+  if(availCache[itemId]){logAppEvent('availability_detail_cache_hit',{itemId:itemId,label:label});renderStallDetail(availCache[itemId],itemId,label,cell,start,end);return;}
+  try{var resp=await fetch('/api/availability?item_id='+itemId+'&start='+fmtApi(start)+'&end='+fmtApi(end));if(!resp.ok)throw new Error('API '+resp.status);var result=await resp.json();availCache[itemId]=result;logAppEvent('availability_detail_response',{itemId:itemId,label:label,available:!!result.available,hasSlip:!!result.slip,priceTotal:result.priceTotal||null,nights:result.nights||null,dateRange:result.dateRange||null,error:result.error||null});if(selectedCell===cell)renderStallDetail(result,itemId,label,cell,start,end);}
+  catch(err){logAppEvent('availability_detail_error',{itemId:itemId,label:label,message:err.message||String(err)});if(selectedCell===cell){document.getElementById('iAvailBanner').className='avail-banner error';document.getElementById('iAvailText').textContent='Error: '+(err.message||'Could not load');}}
 }
 function renderStallDetail(result,itemId,label,cell,start,end){
+  logAppEvent('availability_detail_rendered',{itemId:itemId,label:label,available:!!(result&&result.available&&result.slip),error:result&&result.error?result.error:null});
   if(result.error){document.getElementById('iAvailBanner').className='avail-banner error';document.getElementById('iAvailText').textContent='Could not load pricing';return;}
   var isAvail=result.available&&result.slip,b=document.getElementById('iAvailBanner');
   b.className='avail-banner '+(isAvail?'available':'unavailable');document.getElementById('iAvailText').textContent=isAvail?'Available for your dates':'Not available \u2014 already booked';
@@ -988,16 +1223,18 @@ function renderStallDetail(result,itemId,label,cell,start,end){
 
 // ── CART ─────────────────────────────────────────────────────
 function addToCart(){
+  logAppEvent('legacy_add_to_cart_clicked');
   if(!selectedCell||!selectedLabel)return;
   var type=selectedCell.dataset.type;
   var number=parseInt(type==='rv'?selectedCell.dataset.rv:(type==='turnout'?selectedCell.dataset.turnout:selectedCell.dataset.stall));
   var key=(type==='rv'?'r_':(type==='turnout'?'to_':'s_'))+number;
   var prod=productMap[key];if(!prod)return;
-  var cached=availCache[prod.itemId];if(!cached||!cached.slip)return;if(cart.some(function(c){return c.itemId===prod.itemId;}))return;
+  var cached=availCache[prod.itemId];if(!cached||!cached.slip){logAppEvent('book_selected_missing_slip',{itemId:prod.itemId,label:selectedLabel});return;}if(cart.some(function(c){return c.itemId===prod.itemId;}))return;
   cart.push({itemId:prod.itemId,label:selectedLabel,type:type,number:number,slip:cached.slip});selectedCell.classList.add('in-cart');
   var btn=document.getElementById('btnAddCart');btn.textContent='Remove from Cart';btn.onclick=function(){removeFromCart(prod.itemId);};updateCartUI();
 }
 function removeFromCart(itemId){
+  logAppEvent('legacy_remove_from_cart_clicked',{itemId:itemId});
   cart=cart.filter(function(c){return c.itemId!==itemId;});
   document.querySelectorAll('.sc.in-cart').forEach(function(c){
     var t=c.dataset.type;
@@ -1032,6 +1269,7 @@ function showFlowToast(message,duration){
   showFlowToast._timer=setTimeout(function(){t.classList.remove('vis');},duration||2600);
 }
 function showCheckoutTransitionThenReturn(){
+  logAppEvent('checkout_transition_return_to_map');
   var el=document.getElementById('checkoutTransition');
   if(el)el.classList.add('vis');
   setTimeout(function(){
@@ -1075,19 +1313,23 @@ function sessionAddMore(){
   hideWidgetForMap();
 }
 function collapseWidgetForMap(){
+  logAppEvent('widget_collapse_requested');
   var ws=document.getElementById('widgetSection');
   var iframe=document.querySelector('#CF_WIDGET_TARGET iframe');
-  if(!ws||!iframe){closeWidget();return;}
+  if(!ws||!iframe){logAppEvent('widget_collapse_no_iframe');closeWidget();return;}
   ws.classList.add('vis','widget-collapsed');
   document.body.classList.remove('widget-active');
   document.body.classList.add('has-collapsed-checkout');
   var dock=document.getElementById('mobilePreservedDockSub');
   if(dock) dock.textContent='Cart saved. Tap to reopen checkout.';
+  logAppEvent('widget_collapsed_to_dock');
 }
 function expandPreservedCheckout(){
+  logAppEvent('dock_reopen_requested');
   var ws=document.getElementById('widgetSection');
   var iframe=document.querySelector('#CF_WIDGET_TARGET iframe');
   if(!ws||!iframe){
+    logAppEvent('dock_reopen_no_iframe_fallback');
     if(typeof mobileContinueCheckout==='function') mobileContinueCheckout();
     return;
   }
@@ -1097,8 +1339,10 @@ function expandPreservedCheckout(){
   document.body.classList.add('widget-active');
   var panel=document.getElementById('infoPanel'); if(panel)panel.classList.remove('vis');
   scrollToCheckoutPanel();
+  logAppEvent('dock_reopened');
 }
 function hideWidgetForMap(){
+  logAppEvent('back_to_map_from_widget');
   if(isTouch&&sessionActive&&document.querySelector('#CF_WIDGET_TARGET iframe')){
     collapseWidgetForMap();
   }else{
@@ -1125,8 +1369,10 @@ function cfGetLastPrimaryCartItem(){
   return items.length?items[items.length-1]:null;
 }
 function mobileContinueCheckout(){
+  logAppEvent('mobile_continue_checkout_clicked');
   var item=cfGetLastPrimaryCartItem();
   if(!item){
+    logAppEvent('mobile_continue_checkout_no_saved_item');
     showFlowToast('Your saved cart is not available yet. Choose another spot to continue.',3200);
     return;
   }
@@ -1161,13 +1407,16 @@ function mobileContinueCheckout(){
         provider:'droplet',
         options:'hidesearch,hidedates'
       }).render();
+      logAppEvent('mobile_resume_widget_render_called',{itemId:item.item_id,slip:item.slip});
     }catch(err){
+      logAppEvent('mobile_resume_widget_render_error',{message:err.message||String(err)});
       document.getElementById('widgetMsg').style.display='block';
       document.getElementById('widgetMsg').innerHTML='Could not resume checkout. Choose another spot from the map to continue your saved booking.';
     }
   },350);
 }
 function sessionCheckout(){
+  logAppEvent('session_checkout_clicked');
   if(isTouch){ mobileContinueCheckout(); return; }
   cfSuppressTransientEmptyCart(8000);
   cfRestoreSavedCart();
@@ -1189,12 +1438,15 @@ function sessionCheckout(){
         provider:'droplet',
         options:'hidesearch,hidedates'
       }).render();
+      logAppEvent('desktop_cart_widget_render_called');
     }catch(err){
+      logAppEvent('desktop_cart_widget_render_error',{message:err.message||String(err)});
       document.getElementById('widgetMsg').innerHTML='Could not load checkout. <a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Complete booking here</a>';
     }
   },500);
 }
 function sessionClear(){
+  logAppEvent('session_clear_clicked');
   cfClearSavedCart();
   sessionActive=false;
   sessionItemCount=0;
@@ -1209,6 +1461,7 @@ window.addEventListener('message',function(e){
   // droplet-cart sends structured cart updates to the parent page. Keep the last non-empty cart
   // available for restoration and ignore transient empty-cart updates during the add-more transition.
   if(e.data&&typeof e.data==='object'&&e.data.event==='cartUpdated'){
+    logAppEvent('cart_updated_received',{cartLength:Array.isArray(e.data.cart)?e.data.cart.length:null,cartPayload:sanitizeCartPayloadForLog(e.data.cart)});
     try{
       if(Array.isArray(e.data.cart)&&e.data.cart.length>0){
         var serialized=JSON.stringify(e.data.cart);
@@ -1218,8 +1471,10 @@ window.addEventListener('message',function(e){
         sessionActive=true;
         sessionItemCount=Math.max(sessionItemCount,e.data.cart.filter(function(item){return item&&item.sku!=='shavings';}).length||1);
         updateSessionBanner();
+        logAppEvent('cart_updated_nonempty',{cartLength:e.data.cart.length,cartPayload:sanitizeCartPayloadForLog(e.data.cart)});
       }else if(Array.isArray(e.data.cart)&&e.data.cart.length===0){
-        if(cfShouldSuppressEmptyCart('[]'))cfRestoreSavedCart();
+        logAppEvent('cart_updated_empty');
+        if(cfShouldSuppressEmptyCart('[]')){logAppEvent('cart_updated_empty_suppressed');cfRestoreSavedCart();}
         else cfHandleIntentionalEmptyCart();
       }
     }catch(err){}
@@ -1232,10 +1487,11 @@ window.addEventListener('message',function(e){
   if(!widgetVisible)return;
 
   // Mobile cart overview in this account is often around 900-1000px, not >1500px.
-  if(height>800)_widgetWasLarge=true;
+  if(height>800){if(!_widgetWasLarge)logAppEvent('widget_height_large',{height:height});_widgetWasLarge=true;}
 
   // Detect + Add to Booking transition: cart/overview was large, then droplet returns to a small product state.
   if(_widgetWasLarge&&height<460&&height>100){
+    logAppEvent('add_to_booking_transition_detected',{height:height});
     _widgetWasLarge=false;
     cfSuppressTransientEmptyCart(8000);
     updateSessionBanner();
@@ -1245,17 +1501,20 @@ window.addEventListener('message',function(e){
 
 // ── BOOKING ─────────────────────────────────────────────────
 function bookSelected(){
+  logAppEvent('book_selected_clicked');
   if(!selectedCell||!selectedLabel)return;
   var type=selectedCell.dataset.type;
   var number=parseInt(type==='rv'?selectedCell.dataset.rv:(type==='turnout'?selectedCell.dataset.turnout:selectedCell.dataset.stall));
   var key=(type==='rv'?'r_':(type==='turnout'?'to_':'s_'))+number;
   var prod=productMap[key];if(!prod)return;
-  var cached=availCache[prod.itemId];if(!cached||!cached.slip)return;
+  var cached=availCache[prod.itemId];if(!cached||!cached.slip){logAppEvent('book_selected_missing_slip',{itemId:prod.itemId,label:selectedLabel});return;}
   cart=[{itemId:prod.itemId,label:selectedLabel,type:type,number:number,slip:cached.slip}];
   launchBooking();
 }
 function launchBooking(){
+  logAppEvent('launch_booking_requested',{cartLength:cart.length});
   if(cart.length===0)return;var first=cart[0],cl=cart.map(function(c){return c.label;}).join(', ');
+  logAppEvent('widget_open_requested',{itemId:first.itemId,label:first.label,slip:first.slip,sessionItemCount:sessionItemCount});
   cfSuppressTransientEmptyCart(10000);
   cfRestoreSavedCart();
   sessionActive=true;
@@ -1277,10 +1536,12 @@ function launchBooking(){
   setTimeout(function(){try{document.getElementById('widgetMsg').style.display='none';
     cfRestoreSavedCart();
     new CHECKFRONT.Widget({host:'circle-t-arena.manage.na1.bookingplatform.app',target:'CF_WIDGET_TARGET',item_id:String(first.itemId),slip:first.slip,date:fmtApi(document.getElementById('startDate').value),end_date:fmtApi(document.getElementById('endDate').value),provider:'droplet',options:'hidesearch,hidedates'}).render();
+    logAppEvent('widget_render_called',{itemId:first.itemId,label:first.label,slip:first.slip});
     if(cart.length>1){document.getElementById('widgetMsg').style.display='block';document.getElementById('widgetMsg').innerHTML='<div style="margin-bottom:10px;color:var(--gldl);font-size:11px;">Booking '+first.label+' first. After completing, book remaining: '+cart.slice(1).map(function(c){return c.label;}).join(', ')+'.</div>';}
-  }catch(err){document.getElementById('widgetMsg').style.display='block';document.getElementById('widgetMsg').innerHTML='Could not load reservation form. <a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Book directly here</a>';}},500);
+  }catch(err){logAppEvent('widget_render_error',{message:err.message||String(err)});document.getElementById('widgetMsg').style.display='block';document.getElementById('widgetMsg').innerHTML='Could not load reservation form. <a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Book directly here</a>';}},500);
 }
 function closeWidget(){
+  logAppEvent('widget_closed');
   var tr=document.getElementById('checkoutTransition'); if(tr)tr.classList.remove('vis');
   var ws=document.getElementById('widgetSection');
   if(ws)ws.classList.remove('vis','widget-collapsed');
@@ -1291,6 +1552,7 @@ function closeWidget(){
 // ── INIT ────────────────────────────────────────────────────
 window.addEventListener('load',function(){
   initDates();renderHubCards();
+  logAppEvent('app_loaded');
   var s=document.getElementById('startDate').value,e=document.getElementById('endDate').value;
   if(s&&e&&nightsBetween(s,e)>0&&!currentArea)fetchHubAvailability(s,e);
 });
