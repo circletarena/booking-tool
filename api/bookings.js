@@ -19,6 +19,24 @@
  * and RV sites, but RV sites are not artificially held after checkout by
  * this app-level lookback rule.
  *
+ * BOOKING STATUS HANDLING:
+ * The map should block real/active bookings and ignore cancelled or voided
+ * bookings. Circle T's Checkfront status IDs currently map as:
+ *   PEND  = Pending
+ *   HOLD  = Reserved
+ *   PART  = Deposit
+ *   PAID  = Paid
+ *   PRE   = Pre-booking
+ *   READY = Ready to Clean
+ *   PRODU = Producer Not Paid
+ *
+ * These statuses should make stalls/RVs unavailable.
+ *
+ * These statuses should NOT make stalls/RVs unavailable:
+ *   STOP = Cancelled
+ *   VOID = Void
+ *   WAIT = Waiting / waitlist
+ *
  * Params:
  *   start  — YYYYMMDD (check-in date)
  *   end    — YYYYMMDD (check-out date)
@@ -40,8 +58,19 @@ const V4_BASE = 'https://circle-t-arena.manage.na1.bookingplatform.app/api/4.0';
 const PAGE_SIZE = 100;
 const DEFAULT_LOOKBACK_DAYS = 3;
 
-// Statuses that mean "this stall is taken" — everything except VOID
-const ACTIVE_STATUSES = new Set(['PAID', 'STOP', 'PRODU', 'PRE']);
+// Statuses that should block availability on the map.
+// Do NOT include STOP, because Circle T uses STOP as "Cancelled".
+// Do NOT include VOID.
+// Do NOT include WAIT unless Circle T later confirms Waiting should reserve inventory.
+const ACTIVE_STATUSES = new Set([
+  'PEND',  // Pending
+  'HOLD',  // Reserved
+  'PART',  // Deposit
+  'PAID',  // Paid
+  'PRE',   // Pre-booking
+  'READY', // Ready to Clean
+  'PRODU', // Producer Not Paid
+]);
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -65,7 +94,7 @@ module.exports = async function handler(req, res) {
     'Accept': 'application/json',
   };
 
-  // Convert YYYYMMDD to ISO date strings for v4 API
+  // Convert YYYYMMDD to ISO date strings for v4 API.
   const isoEnd = `${end.substring(0, 4)}-${end.substring(4, 6)}-${end.substring(6, 8)}T23:59:59`;
 
   // Widen the search window to catch bookings that ended recently
@@ -102,7 +131,7 @@ module.exports = async function handler(req, res) {
     }
 
     // ── Parse bookings into booked item IDs ──
-    // Use the same exclusive end-date logic as OccupancyBackend.gs
+    // Use the same exclusive end-date logic as OccupancyBackend.gs.
     const rangeStartIso = `${start.substring(0, 4)}-${start.substring(4, 6)}-${start.substring(6, 8)}`;
     const rangeEndIso = `${end.substring(0, 4)}-${end.substring(4, 6)}-${end.substring(6, 8)}`;
     const lookbackStartIso = lookbackDate.toISOString().substring(0, 10);
@@ -111,17 +140,21 @@ module.exports = async function handler(req, res) {
     const seen = new Set();
 
     for (const booking of allBookings) {
-      // Skip duplicates and voided bookings
+      // Skip duplicate booking records.
       if (seen.has(booking.code)) continue;
-      if (!ACTIVE_STATUSES.has(booking.statusId)) continue;
+
+      // Only statuses that represent a real active/reserved booking should block inventory.
+      const statusId = String(booking.statusId || '').toUpperCase();
+      if (!ACTIVE_STATUSES.has(statusId)) continue;
+
       seen.add(booking.code);
 
-      // Exclusive end-date logic (matches occupancy backend)
+      // Exclusive end-date logic. Check-out date is not occupied.
       const bStart = String(booking.start).substring(0, 10);
       const bEnd = String(booking.end).substring(0, 10);
       const isSameDay = (bStart === bEnd);
 
-      // Check if booking overlaps the actual selected date range
+      // Check if booking overlaps the actual selected date range.
       let isActive;
       if (isSameDay) {
         isActive = (bStart >= rangeStartIso && bStart <= rangeEndIso);
@@ -177,7 +210,7 @@ module.exports = async function handler(req, res) {
       const info = {
         code: booking.code,
         customer: (firstName + ' ' + lastInitial).trim(),
-        status: booking.statusId,
+        status: statusId,
         start: bStart,
         end: bEnd,
         maintenance: isMaintenance,
@@ -206,7 +239,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Cache for 2 minutes — availability doesn't change every second.
+    // Cache for 2 minutes because availability doesn't change every second.
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
 
     return res.json({
