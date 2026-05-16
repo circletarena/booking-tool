@@ -9,10 +9,15 @@
  * we ask "what's booked?" and mark everything else as available.
  *
  * LOOKBACK / MAINTENANCE HOLD:
- * After a booking ends, the stall stays marked as unavailable for
+ * After a booking ends, stalls stay marked as unavailable for
  * LOOKBACK_DAYS (env var, default 3). This prevents online customers
  * from seeing stalls as available before they've been cleaned/prepped.
  * The lookback window is adjustable via the /admin page.
+ *
+ * Important: this post-checkout maintenance/lookback hold applies to
+ * stalls and turnout stalls only. Active bookings still block both stalls
+ * and RV sites, but RV sites are not artificially held after checkout by
+ * this app-level lookback rule.
  *
  * Params:
  *   start  — YYYYMMDD (check-in date)
@@ -61,12 +66,12 @@ module.exports = async function handler(req, res) {
   };
 
   // Convert YYYYMMDD to ISO date strings for v4 API
-  const isoEnd = `${end.substring(0,4)}-${end.substring(4,6)}-${end.substring(6,8)}T23:59:59`;
+  const isoEnd = `${end.substring(0, 4)}-${end.substring(4, 6)}-${end.substring(6, 8)}T23:59:59`;
 
   // Widen the search window to catch bookings that ended recently
-  // (within the lookback/maintenance hold period)
+  // within the lookback/maintenance hold period.
   const lookbackDays = parseInt(process.env.LOOKBACK_DAYS) || DEFAULT_LOOKBACK_DAYS;
-  const startDate = new Date(`${start.substring(0,4)}-${start.substring(4,6)}-${start.substring(6,8)}T00:00:00`);
+  const startDate = new Date(`${start.substring(0, 4)}-${start.substring(4, 6)}-${start.substring(6, 8)}T00:00:00`);
   const lookbackDate = new Date(startDate);
   lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
   const isoStart = lookbackDate.toISOString().substring(0, 19);
@@ -98,8 +103,8 @@ module.exports = async function handler(req, res) {
 
     // ── Parse bookings into booked item IDs ──
     // Use the same exclusive end-date logic as OccupancyBackend.gs
-    const rangeStartIso = `${start.substring(0,4)}-${start.substring(4,6)}-${start.substring(6,8)}`;
-    const rangeEndIso = `${end.substring(0,4)}-${end.substring(4,6)}-${end.substring(6,8)}`;
+    const rangeStartIso = `${start.substring(0, 4)}-${start.substring(4, 6)}-${start.substring(6, 8)}`;
+    const rangeEndIso = `${end.substring(0, 4)}-${end.substring(4, 6)}-${end.substring(6, 8)}`;
     const lookbackStartIso = lookbackDate.toISOString().substring(0, 10);
 
     const booked = {};
@@ -124,9 +129,9 @@ module.exports = async function handler(req, res) {
         isActive = (bStart <= rangeEndIso && bEnd > rangeStartIso);
       }
 
-      // Check if booking ended recently (within lookback window)
+      // Check if booking ended recently within the lookback window.
       // A booking is in maintenance if it ended after the lookback start
-      // but before the selected range starts (so it's not actively overlapping)
+      // but before the selected range starts, so it is not actively overlapping.
       let isMaintenance = false;
       if (!isActive && !isSameDay) {
         isMaintenance = (bEnd > lookbackStartIso && bEnd <= rangeStartIso);
@@ -134,9 +139,9 @@ module.exports = async function handler(req, res) {
 
       if (!isActive && !isMaintenance) continue;
 
-      // Parse itemSummary to find stall/RV names, then match to item IDs
+      // Parse itemSummary to find stall/RV names, then match to item IDs.
       // v4 doesn't return item IDs directly, so we extract stall/RV numbers
-      // from itemSummary and the frontend maps them to cells
+      // from itemSummary and the frontend maps them to cells.
       const summary = booking.itemSummary || '';
       const items = summary.split(', ').map(s => s.trim()).filter(s => s);
 
@@ -151,11 +156,13 @@ module.exports = async function handler(req, res) {
         const numMatch = item.match(/(?:stall|rv)\s+(\d+)/i);
         if (numMatch) {
           const num = parseInt(numMatch[1]);
+
           if (/\brv\b/i.test(item)) {
             rvNumbers.push(num);
           } else if (/turn\s*out/i.test(item)) {
-            // Turn out stalls are distinct products (e.g. "Barn A - Turn out - Stall 1")
-            // and must be keyed separately from regular stalls of the same number
+            // Turn out stalls are distinct products, for example:
+            // "Barn A - Turn out - Stall 1"
+            // and must be keyed separately from regular stalls of the same number.
             turnoutNumbers.push(num);
           } else if (/stall/i.test(item)) {
             stallNumbers.push(num);
@@ -163,8 +170,8 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // Store booking info keyed by stall/RV number
-      // (frontend will map these to cells)
+      // Store booking info keyed by stall/RV number.
+      // The frontend will map these to cells.
       const firstName = booking.firstName || '';
       const lastInitial = booking.lastName ? booking.lastName.charAt(0) + '.' : '';
       const info = {
@@ -177,22 +184,29 @@ module.exports = async function handler(req, res) {
       };
 
       for (const n of stallNumbers) {
-        // Don't overwrite an active booking with a maintenance hold
+        // Don't overwrite an active booking with a maintenance hold.
         if (booked['stall_' + n] && !booked['stall_' + n].maintenance) continue;
         booked['stall_' + n] = info;
       }
+
       for (const n of turnoutNumbers) {
-        // Turn out stalls are keyed as stall_to_N to distinguish from regular stall_N
+        // Turn out stalls are keyed as stall_to_N to distinguish from regular stall_N.
         if (booked['stall_to_' + n] && !booked['stall_to_' + n].maintenance) continue;
         booked['stall_to_' + n] = info;
       }
+
       for (const n of rvNumbers) {
+        // Active RV bookings should block RV sites.
+        // Maintenance/lookback holds should NOT block RV sites,
+        // because the post-checkout cleaning hold applies to stalls only.
+        if (isMaintenance) continue;
+
         if (booked['rv_' + n] && !booked['rv_' + n].maintenance) continue;
         booked['rv_' + n] = info;
       }
     }
 
-    // Cache for 2 minutes — availability doesn't change every second
+    // Cache for 2 minutes — availability doesn't change every second.
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
 
     return res.json({
