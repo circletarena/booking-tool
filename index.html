@@ -402,7 +402,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 </head>
 <body>
 
-<script src="//circle-t-arena.manage.na1.bookingplatform.app/lib/interface--0.js"></script>
+<script src="//circle-t-arena.checkfront.com/lib/interface--0.js"></script>
 
 <header class="hdr">
   <div class="brand">
@@ -437,7 +437,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 </div>
 
 <div class="fallback-banner" id="fallbackBanner">
-  Having trouble? <a href="https://circle-t-arena.manage.na1.bookingplatform.app/reserve" target="_blank">Book directly here</a>
+  Having trouble? <a href="https://circle-t-arena.checkfront.com/reserve" target="_blank">Book directly here</a>
 </div>
 
 <!-- SESSION BANNER (NEW: shows when booking is in progress) -->
@@ -572,7 +572,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 </div>
 
 <script>
-var FALLBACK_URL='https://circle-t-arena.manage.na1.bookingplatform.app/reserve';
+var FALLBACK_URL='https://circle-t-arena.checkfront.com/reserve';
 
 // ── Feature flag: set to false to hide layout toggles ───────
 var SHOW_LAYOUT_TOGGLE=true;
@@ -1407,7 +1407,7 @@ function mobileContinueCheckout(){
       var slipMatch=String(item.slip).match(/^(\d+)\.(\d{8})X(\d+)/);
       var widgetDate=slipMatch?slipMatch[2]:fmtApi(document.getElementById('startDate').value);
       new CHECKFRONT.Widget({
-        host:'circle-t-arena.manage.na1.bookingplatform.app',
+        host:'circle-t-arena.checkfront.com',
         target:'CF_WIDGET_TARGET',
         item_id:String(item.item_id),
         slip:item.slip,
@@ -1442,7 +1442,7 @@ function sessionCheckout(){
       document.getElementById('widgetMsg').style.display='none';
       cfRestoreSavedCart();
       new CHECKFRONT.Widget({
-        host:'circle-t-arena.manage.na1.bookingplatform.app',
+        host:'circle-t-arena.checkfront.com',
         target:'CF_WIDGET_TARGET',
         provider:'droplet',
         options:'hidesearch,hidedates'
@@ -1544,7 +1544,7 @@ function launchBooking(){
   scrollToCheckoutPanel();
   setTimeout(function(){try{document.getElementById('widgetMsg').style.display='none';
     cfRestoreSavedCart();
-    new CHECKFRONT.Widget({host:'circle-t-arena.manage.na1.bookingplatform.app',target:'CF_WIDGET_TARGET',item_id:String(first.itemId),slip:first.slip,date:fmtApi(document.getElementById('startDate').value),end_date:fmtApi(document.getElementById('endDate').value),provider:'droplet',options:'hidesearch,hidedates'}).render();
+    new CHECKFRONT.Widget({host:'circle-t-arena.checkfront.com',target:'CF_WIDGET_TARGET',item_id:String(first.itemId),slip:first.slip,date:fmtApi(document.getElementById('startDate').value),end_date:fmtApi(document.getElementById('endDate').value),provider:'droplet',options:'hidesearch,hidedates'}).render();
     logAppEvent('widget_render_called',{itemId:first.itemId,label:first.label,slip:first.slip});
     if(cart.length>1){document.getElementById('widgetMsg').style.display='block';document.getElementById('widgetMsg').innerHTML='<div style="margin-bottom:10px;color:var(--gldl);font-size:11px;">Booking '+first.label+' first. After completing, book remaining: '+cart.slice(1).map(function(c){return c.label;}).join(', ')+'.</div>';}
   }catch(err){logAppEvent('widget_render_error',{message:err.message||String(err)});document.getElementById('widgetMsg').style.display='block';document.getElementById('widgetMsg').innerHTML='Could not load reservation form. <a href="'+FALLBACK_URL+'" target="_blank" style="color:var(--gldl);">Book directly here</a>';}},500);
