@@ -54,7 +54,7 @@
  * Requires CF_API_KEY and CF_API_SECRET environment variables (v4 is auth-only).
  */
 
-const V4_BASE = 'https://circle-t-arena.manage.na1.bookingplatform.app/api/4.0';
+const V4_BASE = 'https://circle-t-arena.checkfront.com/api/4.0';
 const PAGE_SIZE = 100;
 const DEFAULT_LOOKBACK_DAYS = 3;
 
