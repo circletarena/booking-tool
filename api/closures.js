@@ -16,7 +16,7 @@
  *   }
  */
 
-const V4_BASE = 'https://circle-t-arena.manage.na1.bookingplatform.app/api/4.0';
+const V4_BASE = 'https://circle-t-arena.checkfront.com/api/4.0';
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
