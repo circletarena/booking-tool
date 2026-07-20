@@ -172,7 +172,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 <body>
 
 <!-- Checkfront widget library -->
-<script src="//circle-t-arena.manage.na1.bookingplatform.app/lib/interface--0.js"></script>
+<script src="//circle-t-arena.checkfront.com/lib/interface--0.js"></script>
 
 <header class="hdr">
   <div class="brand">
@@ -186,7 +186,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 </header>
 
 <div class="fallback-banner" id="fallbackBanner">
-  Having trouble? <a href="https://circle-t-arena.manage.na1.bookingplatform.app/reserve" target="_blank">Book directly here</a>
+  Having trouble? <a href="https://circle-t-arena.checkfront.com/reserve" target="_blank">Book directly here</a>
 </div>
 
 <div class="datebar">
@@ -336,7 +336,7 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--tx); 
 //   Accessibility: ARIA roles, keyboard nav, focus management
 // ══════════════════════════════════════════════════════════════
 
-var FALLBACK_URL = 'https://circle-t-arena.manage.na1.bookingplatform.app/reserve';
+var FALLBACK_URL = 'https://circle-t-arena.checkfront.com/reserve';
 
 // ── Map Layout ────────────────────────────────────────────────
 var ROWS = {
@@ -893,7 +893,7 @@ function launchBooking(){
       document.getElementById('widgetMsg').style.display = 'none';
       // Launch widget with first item — customer can add more via Checkfront's native cart
       new CHECKFRONT.Widget({
-        host: 'circle-t-arena.manage.na1.bookingplatform.app',
+        host: 'circle-t-arena.manage.checkfront.com',
         target: 'CF_WIDGET_TARGET',
         item_id: String(firstItem.itemId),
         slip: firstItem.slip,
