@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
   }
 
   const subdomain = process.env.CF_SUBDOMAIN;
-  const domain = process.env.CF_DOMAIN || 'manage.na1.bookingplatform.app';
+  const domain = process.env.CF_DOMAIN || 'checkfront.com';
   const baseUrl = `https://${subdomain}.${domain}/api/3.0`;
 
   // Build headers — include auth if credentials are configured
