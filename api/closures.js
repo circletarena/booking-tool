@@ -4,6 +4,10 @@
  * Fetches product closures from Checkfront v4 API.
  * Returns a set of product IDs that are closed for the given date range.
  *
+ * Also applies site-only EVENT_BLACKOUTS (defined below). These block dates
+ * on this website only. They are NOT created in Checkfront, so staff can
+ * still book those dates through the Checkfront staff booking page.
+ *
  * Params:
  *   start  — YYYYMMDD (check-in date)
  *   end    — YYYYMMDD (check-out date)
@@ -17,6 +21,50 @@
  */
 
 const V4_BASE = 'https://circle-t-arena.checkfront.com/api/4.0';
+
+/**
+ * Site-only blackouts for staff-only events.
+ *
+ *   firstNight / lastNight — YYYY-MM-DD, the first and last nights guests
+ *                            would stay. Checking out on firstNight is allowed.
+ *   appliesTo              — 'all' for every product, or an array of
+ *                            product IDs, e.g. [106752, 106756]
+ *
+ * To remove a blackout after the event, delete its entry from this list.
+ */
+const EVENT_BLACKOUTS = [
+  {
+    name: 'Private event (staff booking only)',
+    firstNight: '2027-03-22', // TODO: confirm with Circle T
+    lastNight: '2027-03-28',  // TODO: confirm 28th is a night, not departure day
+    appliesTo: 'all',
+  },
+];
+
+// True if the selected dates touch any night in the blackout.
+// Same-day selections (start === end) are treated as that single date.
+function blackoutOverlaps(blackout, rangeStart, rangeEnd) {
+  if (rangeEnd <= rangeStart) {
+    return rangeStart >= blackout.firstNight && rangeStart <= blackout.lastNight;
+  }
+  return rangeStart <= blackout.lastNight && rangeEnd > blackout.firstNight;
+}
+
+// Fetches every product ID, using the same v3 item endpoint as products.js
+async function fetchAllProductIds(headers) {
+  const subdomain = process.env.CF_SUBDOMAIN;
+  const domain = process.env.CF_DOMAIN || 'checkfront.com';
+  const resp = await fetch(`https://${subdomain}.${domain}/api/3.0/item`, { headers });
+  if (!resp.ok) {
+    throw new Error(`Checkfront item API returned ${resp.status}`);
+  }
+  const data = await resp.json();
+  const rawItems = data.items || data.item || {};
+  const itemList = Array.isArray(rawItems) ? rawItems : Object.values(rawItems);
+  return itemList
+    .filter(item => item && item.item_id)
+    .map(item => Number(item.item_id));
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -72,6 +120,32 @@ module.exports = async function handler(req, res) {
           name: closure.name,
           startDate: closure.startDate,
           endDate: closure.endDate,
+          productCount: ids.length,
+        });
+      }
+    }
+
+    // Apply site-only event blackouts.
+    // Products are only fetched when a blackout actually overlaps,
+    // so all other dates behave exactly as before.
+    const activeBlackouts = EVENT_BLACKOUTS.filter(b => blackoutOverlaps(b, rangeStart, rangeEnd));
+    if (activeBlackouts.length > 0) {
+      let allProductIds = null;
+      for (const blackout of activeBlackouts) {
+        let ids;
+        if (blackout.appliesTo === 'all') {
+          if (!allProductIds) allProductIds = await fetchAllProductIds(headers);
+          ids = allProductIds;
+        } else {
+          ids = blackout.appliesTo.map(Number);
+        }
+        for (const id of ids) {
+          closedProductIds.add(id);
+        }
+        matchedClosures.push({
+          name: blackout.name,
+          startDate: blackout.firstNight,
+          endDate: blackout.lastNight,
           productCount: ids.length,
         });
       }
